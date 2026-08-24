@@ -61,6 +61,24 @@ analysis → data-quality validation → export.
 | `SWNTs trackingV3.zip` | **Canonical** MATLAB code | Direct port source (see mapping below) |
 | `SWNTs tracking.rar` | Older development snapshot | Provenance only; no algorithm change (diff summary in `ref/README.md`) |
 
+### References
+
+1. A. D. Smith McWilliams, Z. Tang, S. Ergülen, C. A. de los Reyes, A. A. Martí, M. Pasquali,
+   *Real-Time Visualization and Dynamics of Boron Nitride Nanotubes Undergoing Brownian Motion*,
+   J. Phys. Chem. B **2020**, 124 (20), 4185–4192. DOI:
+   [10.1021/acs.jpcb.0c03663](https://doi.org/10.1021/acs.jpcb.0c03663).
+2. U. Umezaki, A. D. Smith McWilliams, Z. Tang, Z. M. S. He, I. R. Siqueira, S. J. Corr,
+   H. Ryu, A. B. Kolomeisky, M. Pasquali, A. A. Martí, *Brownian Diffusion of Hexagonal Boron
+   Nitride Nanosheets and Graphene in Two Dimensions*, ACS Nano **2024**, 18 (3), 2446–2454.
+   DOI: [10.1021/acsnano.3c11053](https://doi.org/10.1021/acsnano.3c11053).
+3. Z. Tang, S. L. Eichmann, B. Lounis, L. Cognet, F. C. MacKintosh, M. Pasquali,
+   *Single-walled carbon nanotube reptation dynamics in submicron sized pores from randomly
+   packed mono-sized colloids*, Soft Matter **2022**. DOI:
+   [10.1039/D2SM00305H](https://doi.org/10.1039/D2SM00305H).
+4. F. Gittes, B. Mickey, J. Nettleton, J. Howard, *Flexural Rigidity of Microtubules and Actin
+   Filaments Measured from Thermal Fluctuations in Shape*, J. Cell Biol. **1993**, 120 (4),
+   923–934. DOI: [10.1083/jcb.120.4.923](https://doi.org/10.1083/jcb.120.4.923).
+
 ### Key parameters (from `main.m`, V3)
 
 `featsize(masscut)=10`, `stdThreshold=3.0`, `maxdisp=10 px`, `goodenough=20 frames`,
