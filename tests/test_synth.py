@@ -1,3 +1,5 @@
+"""Synthetic data tests: video shape/dtype, ground-truth schema, reproducibility."""
+
 import numpy as np
 
 from nanotrack.config import PipelineConfig
@@ -9,6 +11,7 @@ def _cfg(**kw):
 
 
 def test_shape_and_dtype():
+    """Frames are uint8 with shape (n_frames, image_size, image_size) in [0, 255]."""
     frames, _ = generate(_cfg())
     assert frames.shape == (10, 128, 128)
     assert frames.dtype == np.uint8
@@ -16,6 +19,7 @@ def test_shape_and_dtype():
 
 
 def test_ground_truth_schema():
+    """Ground truth has n_molecules=1 and one per-frame dict with all keys."""
     _, gt = generate(_cfg())
     assert gt["n_molecules"] == 1
     assert len(gt["particles"]) == 10
@@ -26,6 +30,7 @@ def test_ground_truth_schema():
 
 
 def test_deterministic_with_seed():
+    """The same seed must reproduce identical frames."""
     f1, _ = generate(_cfg())
     f2, _ = generate(_cfg())
     np.testing.assert_array_equal(f1, f2)
