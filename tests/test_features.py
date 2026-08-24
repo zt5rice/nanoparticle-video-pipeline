@@ -41,6 +41,14 @@ def test_msad_wrap():
     np.testing.assert_allclose(msad, [100.0, 400.0])
 
 
+def test_msad_vertical_rod_no_fake_jump():
+    """Orientation is mod 180: a vertical rod at +89/-89 differs by ~2 deg, not 178."""
+    angles = np.array([89.0, 90.0, -89.0, -88.0])
+    _, msad = msad_curve(angles, 2)
+    # physical deltas: lag1 = [1,1,1] -> MSAD ~ 1; lag2 = [2,2] -> MSAD ~ 4
+    np.testing.assert_allclose(msad, [1.0, 4.0])
+
+
 def test_quick_matches_full_at_shared_lags():
     """Log-spaced quick MSD must equal the exhaustive MSD at every shared lag."""
     rng = np.random.default_rng(1)
