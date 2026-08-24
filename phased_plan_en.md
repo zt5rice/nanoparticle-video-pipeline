@@ -2,6 +2,13 @@
   <strong>English</strong> · <a href="phased_plan_cn.md">中文</a>
 </div>
 
+> **NOTE (2026-08-23)**: This document is the high-level roadmap. The authoritative,
+> decision-complete execution spec is **[docs/implementation-plan.md](docs/implementation-plan.md)**
+> (Chinese execution version: [docs/implementation-plan.zh-CN.md](docs/implementation-plan.zh-CN.md)).
+> Scope updated: **single-molecule tracking (SPT)** — exactly one molecule per field of
+> view; multi-particle tracking is out of scope. Reference papers and MATLAB source are
+> in [`ref/`](ref/README.md).
+
 # nanoparticle-video-pipeline Phased Implementation Plan
 
 ## Summary
