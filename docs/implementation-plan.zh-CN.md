@@ -220,6 +220,8 @@ Fourier 模态为可选扩展，不进 v1 验收）。
 ### CLI 与 Airflow
 
 - `python scripts/run_pipeline.py --backend {numpy|opencv|skimage} --config config.yaml --out output`
+- 真实视频：`python scripts/run_pipeline.py --input video.tif --out output`（TIFF/ND2；
+  分析整段视频，或加 `--n-frames N` 只分析前 N 帧）
 - Airflow DAG `nanoparticle_video_pipeline`：`generate → preprocess → detect_track →
   features_validate → export`，`@daily`、`catchup=False`、LocalExecutor；写出
   `output/latest_result.json`（与 `result.json` 同 schema）。
