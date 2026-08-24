@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  lint-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install
+        run: pip install -r requirements-dev.txt
+      - name: Lint
+        run: ruff check src tests dags
+      - name: Test
+        run: pytest
+      - name: Smoke
+        run: python scripts/smoke_test.py
+
+  docker-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and start the stack
+        run: docker compose up --build -d
+      - name: Wait for API
+        run: |
+          for i in $(seq 1 60); do
+            curl -sf http://localhost:8000/health && break
+            sleep 5
+          done
+          curl -sf http://localhost:8000/health
+      - name: API checks
+        run: |
+          curl -sf http://localhost:8000/health
+          curl -sf -X POST http://localhost:8000/analyze \
+            -H 'Content-Type: application/json' \
+            -d '{"n_frames":60,"backend":"numpy"}' | grep '"quality_pass_rate":'
+          curl -sf http://localhost:8000/metrics | grep nanotrack_frames_total
+      - name: Infrastructure checks
+        run: |
+          curl -sf http://localhost:9090/-/healthy
+          curl -sf http://localhost:3000/api/health
+          curl -sf http://localhost:8080/health
+      - name: Airflow DAG run
+        run: |
+          docker compose exec -T airflow-webserver airflow dags test \
+            nanoparticle_video_pipeline $(date +%Y-%m-%d) || true
+          test -f output/latest_result.json
+
