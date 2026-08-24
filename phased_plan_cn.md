@@ -2,6 +2,12 @@
   <a href="phased_plan_en.md">English</a> · <strong>中文</strong>
 </div>
 
+> **说明（2026-08-23）**：本文档为高层路线图。权威的决策级执行规格见
+> **[docs/implementation-plan.md](docs/implementation-plan.md)**
+> （中文执行版：[docs/implementation-plan.zh-CN.md](docs/implementation-plan.zh-CN.md)）。
+> 范围已更新：**单分子追踪（SPT）**——每个视场只有 1 个分子；多粒子追踪不在范围内。
+> 参考论文与 MATLAB 源码见 [`ref/`](ref/README.md)。
+
 # nanoparticle-video-pipeline 分阶段实施计划
 
 ## 概述
