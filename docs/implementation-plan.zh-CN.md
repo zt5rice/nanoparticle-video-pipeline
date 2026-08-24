@@ -218,6 +218,9 @@ Fourier 模态为可选扩展，不进 v1 验收）。朝向角在追踪时按 1
 - `GET /metrics` → Prometheus 文本；计数器 `nanotrack_frames_total`、
   `nanotrack_errors_total`、直方图 `nanotrack_runtime_seconds`；
   `NANOTRACK_METRICS_ENABLED=false` 可关闭。
+- `GET /tracking?out=<dir>` → 提供追踪 QC HTML 报告（`<dir>/tracking_report.html`；
+  不存在则 404）。CLI 每次运行都会生成该报告（轨迹叠加、x/y vs frame、
+  angle vs frame、MSD vs lag）。
 
 ### CLI 与 Airflow
 

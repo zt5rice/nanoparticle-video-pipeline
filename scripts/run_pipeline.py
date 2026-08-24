@@ -14,6 +14,7 @@ import yaml
 from nanotrack.config import BACKENDS, PipelineConfig
 from nanotrack.export import detections_to_rows, read_detections_rows, track_to_rows, write_csv
 from nanotrack.pipeline import run, run_from_detections
+from nanotrack.report import write_tracking_report
 from nanotrack.synth import generate
 
 DETECTION_COLUMNS = [
@@ -26,7 +27,9 @@ TRACK_COLUMNS = [
 ]
 
 
-def _write_outputs(result_raw: dict, cfg: PipelineConfig, out: Path) -> None:
+def _write_outputs(
+    result_raw: dict, cfg: PipelineConfig, out: Path, frames=None
+) -> None:
     """Write result.json (summary), raw CSVs, config.yaml, and ground truth."""
     out.mkdir(parents=True, exist_ok=True)
     # result.json keeps the documented summary contract (no raw arrays inside).
@@ -41,6 +44,7 @@ def _write_outputs(result_raw: dict, cfg: PipelineConfig, out: Path) -> None:
         )
     if "track" in result_raw:
         write_csv(out / "tracks.csv", track_to_rows(result_raw["track"], cfg), columns=TRACK_COLUMNS)
+        write_tracking_report(result_raw, cfg, out / "tracking_report.html", frames=frames)
     if result_raw.get("ground_truth") is not None:
         (out / "ground_truth.json").write_text(
             json.dumps(result_raw["ground_truth"], indent=2), encoding="utf-8"
@@ -79,6 +83,7 @@ def main() -> None:
     cfg.out_dir = args.out
 
     out = Path(args.out)
+    frames = None
     if args.resume:
         # Resume from saved detections: skip preprocessing + detection entirely.
         det_path = out / "detections.csv"
@@ -115,11 +120,11 @@ def main() -> None:
             frames, gt = generate(cfg)
         result_raw = run(frames, cfg, gt, raw=True)
 
-    _write_outputs(result_raw, cfg, out)
+    _write_outputs(result_raw, cfg, out, frames=frames)
     result = {k: v for k, v in result_raw.items() if k not in ("detections", "track", "ground_truth")}
     print(json.dumps({k: result[k] for k in ("n_frames", "n_detections", "n_tracks")}))
     print(f"quality_pass_rate: {result['quality']['pass_rate']}")
-    print(f"wrote {out / 'result.json'}, detections.csv, tracks.csv, config.yaml")
+    print(f"wrote {out / 'result.json'}, detections.csv, tracks.csv, tracking_report.html, config.yaml")
 
 
 if __name__ == "__main__":

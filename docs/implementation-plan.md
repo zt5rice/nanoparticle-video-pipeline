@@ -235,6 +235,9 @@ MSD fit `R²≥0.7`, exactly-one-primary-object per frame (0 or >1 flagged). Out
 - `GET /metrics` → Prometheus text; counters `nanotrack_frames_total`,
   `nanotrack_errors_total`, histogram `nanotrack_runtime_seconds`; disable via
   `NANOTRACK_METRICS_ENABLED=false`.
+- `GET /tracking?out=<dir>` → serves the tracking-QC HTML report
+  (`<dir>/tracking_report.html`; 404 if missing). The CLI writes this report after
+  every run (trajectory overlay, x/y vs frame, angle vs frame, MSD vs lag).
 
 ### CLI & Airflow
 

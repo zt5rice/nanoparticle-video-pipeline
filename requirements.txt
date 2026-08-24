@@ -13,4 +13,4 @@ pyyaml>=6.0
 pydantic>=2.4
 tifffile>=2023.7
 nd2>=0.9
-
+plotly>=5.18
