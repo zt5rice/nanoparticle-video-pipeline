@@ -17,6 +17,10 @@ python scripts/run_pipeline.py --input video.tif --out output   # analyze a real
 python scripts/run_pipeline.py --out output --resume            # rebuild from detections.csv
 ```
 
+Each run also writes `output/tracking_report.html` — a self-contained tracking-QC
+dashboard (trajectory, x/y vs frame, angle vs frame, MSD). With the API up, open
+`http://localhost:8000/tracking`.
+
 ### Docker stack (local)
 
 ```bash
