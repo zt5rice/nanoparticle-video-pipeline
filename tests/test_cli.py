@@ -42,3 +42,27 @@ def test_cli_input_missing_file_fails(tmp_path):
     proc = _run_cli("--input", tmp_path / "nope.tif", "--out", tmp_path / "out")
     assert proc.returncode != 0
     assert "error:" in proc.stderr
+
+
+def test_cli_resume_reuses_detections(tmp_path):
+    """--resume rebuilds result/tracks from detections.csv without image analysis."""
+    frames, _ = generate(PipelineConfig(image_size=128, n_frames=30, seed=0))
+    video = tmp_path / "input.tif"
+    save_video(video, frames)
+    out = tmp_path / "out"
+
+    proc1 = _run_cli("--input", video, "--out", out)
+    assert proc1.returncode == 0, proc1.stderr
+    assert (out / "detections.csv").exists()
+    assert (out / "tracks.csv").exists()
+    first = json.loads((out / "result.json").read_text(encoding="utf-8"))
+
+    # Simulate interrupted post-processing: keep detections, delete derived outputs.
+    (out / "result.json").unlink()
+    (out / "tracks.csv").unlink()
+
+    proc2 = _run_cli("--input", video, "--out", out, "--resume")
+    assert proc2.returncode == 0, proc2.stderr
+    second = json.loads((out / "result.json").read_text(encoding="utf-8"))
+    assert second["n_detections"] == first["n_detections"]
+    assert second["n_tracks"] == first["n_tracks"]
