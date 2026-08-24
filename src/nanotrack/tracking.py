@@ -42,6 +42,27 @@ def _interpolate_missing(frames: list[dict], memory: int) -> list[dict]:
     return filled
 
 
+def _unwrap_orientation(frames: list[dict]) -> list[dict]:
+    """Unwrap orientation (mod 180 deg) so vertical rods don't fake-jump at ±90.
+
+    Ellipse orientation is defined in (-90, 90]; unwrapping keeps the series
+    continuous (e.g. 89 -> 91 instead of 89 -> -89), which is what angle_std,
+    MSAD and tracks.csv should reflect.
+    """
+    prev: float | None = None
+    for f in frames:
+        a = f.get("angle")
+        if a is None or f.get("missing"):
+            continue
+        if prev is None:
+            prev = float(a)
+            continue
+        delta = (float(a) - prev + 90.0) % 180.0 - 90.0  # smallest rotation (mod 180)
+        f["angle"] = prev + delta
+        prev = f["angle"]
+    return frames
+
+
 def track(blobs_per_frame: list[list[dict]], cfg: PipelineConfig) -> dict:
     """Track the single primary object across frames.
 
@@ -76,6 +97,7 @@ def track(blobs_per_frame: list[list[dict]], cfg: PipelineConfig) -> dict:
         last = (primary["x"], primary["y"])
         present += 1
 
+    frames = _unwrap_orientation(frames)
     filled = _interpolate_missing(frames, cfg.memory)
     valid = present >= cfg.min_track_len
     return {
@@ -87,4 +109,3 @@ def track(blobs_per_frame: list[list[dict]], cfg: PipelineConfig) -> dict:
         "x_um": [f.get("x_px") * cfg.pixels_per_micron if f.get("x_px") is not None else None for f in filled],
         "y_um": [f.get("y_px") * cfg.pixels_per_micron if f.get("y_px") is not None else None for f in filled],
     }
-

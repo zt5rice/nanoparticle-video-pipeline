@@ -142,6 +142,7 @@ flowchart TB
 `noise_sigma: float=8.0`, `background_strength: float=20.0`,
 `particle_length_px: int=40`, `particle_width_px: int=6`,
 `brownian_step_px: float=0.5`, `angle_step_rad: float=0.03`,
+`initial_angle_deg: float=0.0`,
 `max_lag: int=min(50, n_frames//2)`, `msd_fit_frac: float=0.25`,
 `msd_n_lags: int=40`,
 `chunk_size: int=16`, `dask_scheduler: str="threads"`, `seed: int=0`,
@@ -193,7 +194,8 @@ exhaustive per-lag version for tests/correctness. Linear fit over the first
 `msd_fit_frac` of lags; `Dt = slope/4`, `Dr = slope/2`. Shape fluctuation follows the
 Gittes protocol: skeleton backbone → arc-length parametrization → tangent angle →
 rotated-parabola bending angle (mean/std in v1; Fourier modes optional, not in v1
-acceptance).
+acceptance). Orientation is unwrapped mod 180° during tracking (vertical rods do not
+fake-jump at ±90°), and MSAD wraps angular deltas to [-90°, 90°).
 
 ### `validation.report(track, cfg) -> DataQualityReport`
 
