@@ -49,6 +49,24 @@ Actions CI 与 GitHub 发布。默认用合成数据演示；真实视频加载�
 | `SWNTs trackingV3.zip` | **规范版** MATLAB 代码 | 直接移植来源（见下方映射） |
 | `SWNTs tracking.rar` | 更早开发快照 | 仅溯源；无算法差异（diff 摘要见 `ref/README.md`） |
 
+### 参考文献
+
+1. A. D. Smith McWilliams, Z. Tang, S. Ergülen, C. A. de los Reyes, A. A. Martí, M. Pasquali,
+   *Real-Time Visualization and Dynamics of Boron Nitride Nanotubes Undergoing Brownian Motion*,
+   J. Phys. Chem. B **2020**, 124 (20), 4185–4192. DOI:
+   [10.1021/acs.jpcb.0c03663](https://doi.org/10.1021/acs.jpcb.0c03663).
+2. U. Umezaki, A. D. Smith McWilliams, Z. Tang, Z. M. S. He, I. R. Siqueira, S. J. Corr,
+   H. Ryu, A. B. Kolomeisky, M. Pasquali, A. A. Martí, *Brownian Diffusion of Hexagonal Boron
+   Nitride Nanosheets and Graphene in Two Dimensions*, ACS Nano **2024**, 18 (3), 2446–2454.
+   DOI: [10.1021/acsnano.3c11053](https://doi.org/10.1021/acsnano.3c11053).
+3. Z. Tang, S. L. Eichmann, B. Lounis, L. Cognet, F. C. MacKintosh, M. Pasquali,
+   *Single-walled carbon nanotube reptation dynamics in submicron sized pores from randomly
+   packed mono-sized colloids*, Soft Matter **2022**. DOI:
+   [10.1039/D2SM00305H](https://doi.org/10.1039/D2SM00305H).
+4. F. Gittes, B. Mickey, J. Nettleton, J. Howard, *Flexural Rigidity of Microtubules and Actin
+   Filaments Measured from Thermal Fluctuations in Shape*, J. Cell Biol. **1993**, 120 (4),
+   923–934. DOI: [10.1083/jcb.120.4.923](https://doi.org/10.1083/jcb.120.4.923).
+
 ### 关键参数（来自 `main.m`，V3）
 
 `featsize(masscut)=10`、`stdThreshold=3.0`、`maxdisp=10 px`、`goodenough=20 帧`、
