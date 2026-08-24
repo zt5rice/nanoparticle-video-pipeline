@@ -11,3 +11,4 @@ sample_data/
 __pycache__/
 *.pyc
 *.egg-info/
+.airflow_home/
