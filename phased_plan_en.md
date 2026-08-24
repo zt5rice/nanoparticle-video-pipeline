@@ -13,7 +13,7 @@
 
 ## Summary
 
-Keep the confirmed overall design unchanged: a data-engineering–style reimplementation of the author's MATLAB nanoparticle video-analysis methodology, progressing through four phases as specified: **repo & core pipeline → CV/parallel/real-video backends → serving, orchestration & observability → CI/CD, docs & GitHub release**. The final repo lives at `<repo-root>` (Python 3.11 `.venv`, package `nanotrack` 0.1.0), and is pushed to `github.com/zt5rice/nanoparticle-video-pipeline` (main). Each phase has clear deliverables, acceptance criteria, and a verification checklist. Full stack includes: pure-NumPy core (self-written algorithms) + OpenCV/scikit-image preprocessing backends + Dask parallelism + Airflow DAG + FastAPI/Prometheus/Grafana + Docker Compose + GitHub Actions CI + real-video loaders (TIFF/ND2) + ImageJ-style preprocessing notebook.
+Keep the confirmed overall design unchanged: a data-engineering–style reimplementation of the author's MATLAB nanoparticle video-analysis methodology, progressing through four phases as specified: **repo & core pipeline → CV/parallel/real-video backends → serving, orchestration & observability → CI/CD, docs & GitHub release**. The final repo lives in this repository (Python 3.11 `.venv`, package `nanotrack` 0.1.0), and is pushed to `github.com/zt5rice/nanoparticle-video-pipeline` (main). Each phase has clear deliverables, acceptance criteria, and a verification checklist. Full stack includes: pure-NumPy core (self-written algorithms) + OpenCV/scikit-image preprocessing backends + Dask parallelism + Airflow DAG + FastAPI/Prometheus/Grafana + Docker Compose + GitHub Actions CI + real-video loaders (TIFF/ND2) + ImageJ-style preprocessing notebook.
 
 ### System design diagram
 
@@ -78,7 +78,7 @@ nd2>=0.9
 
 ## Phase 1: Repo Scaffold, venv, and Core NumPy Pipeline + Tests
 
-- Repo restructure: create `<repo-root>` with `.gitignore`, `LICENSE` (MIT), `pyproject.toml`, `requirements.txt`, `requirements-dev.txt`, `Makefile`; create `.venv` (Python 3.11) and install `requirements-dev.txt`; add a header comment to `requirements.txt` with the package name/version.
+- Repo restructure: create at the repository root: `.gitignore`, `LICENSE` (MIT), `pyproject.toml`, `requirements.txt`, `requirements-dev.txt`, `Makefile`; create `.venv` (Python 3.11) and install `requirements-dev.txt`; add a header comment to `requirements.txt` with the package name/version.
 - Core library `src/nanotrack/`:
   - `config.py` — `PipelineConfig` dataclass (backend, n_frames, n_particles, image_size, noise, background_strength, min_area, max_track_dist, dt, max_lag, chunk_size, dask_scheduler, out_dir) + `from_yaml()`.
   - `synth.py` — synthetic microscopy-style video of rod-like ellipses doing 2D Brownian motion (x/y/angle random walk); returns `(uint8 frames, ground_truth dict)`; pure NumPy.
@@ -137,7 +137,7 @@ nd2>=0.9
 
 - `.github/workflows/ci.yml` — Python 3.11: `pip install -r requirements-dev.txt` → `ruff check src tests dags` → `pytest` → `python scripts/smoke_test.py`.
 - Docs: `README.md` (quickstart, architecture diagram, tooling-mapping table, license) and `docs/system-design.md` (this document).
-- Git: `git init -b main`, add, commit (conventional message), set remote `git@github.com:zt5rice/nanoparticle-video-pipeline.git`, push to `main` using `GIT_SSH_COMMAND="ssh -i <user-ssh-key> -o IdentitiesOnly=yes"`; if the remote already has an initial commit, `git fetch` + `git pull --rebase` first (no force).
+- Git: `git init -b main`, add, commit (conventional message), set remote `git@github.com:zt5rice/nanoparticle-video-pipeline.git`, push to `main` using the user's default GitHub SSH key; if the remote already has an initial commit, `git fetch` + `git pull --rebase` first (no force).
 - Acceptance: local ruff/pytest/smoke all green; commit pushed; GitHub repo shows the full tree and CI passes.
 - Verification checklist:
   - `.venv/bin/python -m ruff check src tests dags` clean
@@ -150,7 +150,7 @@ nd2>=0.9
 - Phase order strictly follows the user's specification (repo/core → CV/parallel/real-video → serving/orchestration/observability → CI/docs/release), matching the reference project's phased-plan style.
 - All repo docs are English; demo runs on synthetic data by default; real-video loaders (TIFF/ND2) are supported but not required for CI.
 - "ImageJ-style preprocessing" means Python equivalents (rolling-ball/median/Otsu), not pyimagej/JVM; exact ImageJ binary output is not reproduced.
-- Network (GitHub) is blocked inside the sandbox and `<repo-root>` is outside the sandbox writable roots: implementation will stage files in the staging workspace, then request escalation for copy/venv/network/push steps. Git MCP tools will be used if available; otherwise git CLI with the existing SSH key.
+- Network (GitHub) is blocked inside the sandbox and the repository root is outside the sandbox writable roots: implementation will stage files in a staging workspace, then request escalation for copy/venv/network/push steps. Git MCP tools will be used if available; otherwise git CLI with the user's default SSH key.
 - Python version pinned to 3.11; all commands use the repo-local `.venv`.
 - Push target is `main`, non-fast-forward handled by rebase, never force-push.
 

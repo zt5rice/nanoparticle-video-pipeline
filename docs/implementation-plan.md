@@ -44,8 +44,9 @@ analysis → data-quality validation → export.
 - `ref/` (papers + both MATLAB archives) is committed to the repo with `ref/README.md`;
   `.DS_Store` ignored; `output/` not committed.
 - Network operations (pip install, Linear API, git fetch/push, GitHub checks) require
-  per-command escalation. The current SSH key fails `publickey` auth; Phase 4 includes a
-  push pre-check gate (see §6).
+  per-command escalation. Push uses the **user's default GitHub SSH key** (verified
+  registered to GitHub user `zt5rice`); no custom key file path is required. Phase 4
+  includes a push pre-check gate (see §6).
 
 ## 3. Reference Materials (`ref/`)
 
@@ -269,9 +270,10 @@ MSD fit `R²≥0.7`, exactly-one-primary-object per frame (0 or >1 flagged). Out
   `pytest` → `scripts/smoke_test.py`) + `docker-e2e`.
 - `README.md` (quickstart, architecture diagram, tooling-mapping table, `ref/` citations,
   license), `docs/system-design.md` (this spec's diagram), `ref/README.md`.
-- **Push pre-check gate**: `ssh -T git@github.com` with `<user-ssh-key>`;
-  if `publickey` fails, pause and ask user to add `<user-ssh-key>.pub` to GitHub (or provide
-  HTTPS PAT via env). Never force-push; non-fast-forward → `git pull --rebase`.
+- **Push pre-check gate**: `ssh -T git@github.com` with the **user's default GitHub SSH
+  key** (verified working, user `zt5rice`); if `publickey` fails, pause and ask user to fix
+  the key (or provide HTTPS PAT via env). Never force-push; non-fast-forward →
+  `git pull --rebase`.
 - **Acceptance**: Actions green; full repo tree on GitHub; Linear tickets Done after
   merges.
 
