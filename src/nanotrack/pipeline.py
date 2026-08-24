@@ -17,14 +17,22 @@ def _analyze_frame(frame: np.ndarray, cfg: PipelineConfig) -> list[dict]:
     return detect(mask, cfg)
 
 
-def run(frames: np.ndarray, cfg: PipelineConfig, ground_truth: dict | None = None) -> dict:
-    """Run the pipeline on a video stack and return the result dict (spec §5)."""
-    blobs_per_frame = [_analyze_frame(f, cfg) for f in frames]
+def run_from_detections(
+    blobs_per_frame: list[list[dict]],
+    cfg: PipelineConfig,
+    ground_truth: dict | None = None,
+    raw: bool = False,
+) -> dict:
+    """Run tracking -> features -> validation on pre-computed detections.
+
+    This is the resume/post-processing entry point: image analysis (the expensive
+    stage) can be skipped when ``detections.csv`` is already available.
+    """
     trk = track(blobs_per_frame, cfg)
     summary = summarize(trk, cfg)
     trk["summary"] = summary
     quality = validation.report(trk, blobs_per_frame, cfg)
-    return {
+    result = {
         "version": "0.1.0",
         "config": cfg.to_dict(),
         "n_frames": int(cfg.n_frames),
@@ -33,4 +41,19 @@ def run(frames: np.ndarray, cfg: PipelineConfig, ground_truth: dict | None = Non
         "summary": summary,
         "quality": quality,
     }
+    if raw:
+        result["detections"] = blobs_per_frame
+        result["track"] = trk
+        result["ground_truth"] = ground_truth
+    return result
 
+
+def run(
+    frames: np.ndarray,
+    cfg: PipelineConfig,
+    ground_truth: dict | None = None,
+    raw: bool = False,
+) -> dict:
+    """Run the full pipeline on a video stack (preprocess -> detect -> ... -> validate)."""
+    blobs_per_frame = [_analyze_frame(f, cfg) for f in frames]
+    return run_from_detections(blobs_per_frame, cfg, ground_truth=ground_truth, raw=raw)
