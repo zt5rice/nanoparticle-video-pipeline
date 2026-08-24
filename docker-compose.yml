@@ -12,7 +12,9 @@ services:
       retries: 10
 
   airflow-init:
-    build: ./airflow
+    build:
+      context: .
+      dockerfile: airflow/Dockerfile
     entrypoint: /bin/bash
     command:
       - -c
@@ -28,7 +30,9 @@ services:
       - ./output:/opt/airflow/output
 
   airflow-webserver:
-    build: ./airflow
+    build:
+      context: .
+      dockerfile: airflow/Dockerfile
     command: webserver
     ports:
       - "8080:8080"
@@ -41,7 +45,9 @@ services:
       - ./output:/opt/airflow/output
 
   airflow-scheduler:
-    build: ./airflow
+    build:
+      context: .
+      dockerfile: airflow/Dockerfile
     command: scheduler
     environment:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
@@ -79,4 +85,3 @@ services:
       - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
     depends_on:
       - prometheus
-
