@@ -49,6 +49,24 @@ Actions CI 与 GitHub 发布。默认用合成数据演示；真实视频加载�
 | `SWNTs trackingV3.zip` | **规范版** MATLAB 代码 | 直接移植来源（见下方映射） |
 | `SWNTs tracking.rar` | 更早开发快照 | 仅溯源；无算法差异（diff 摘要见 `ref/README.md`） |
 
+### 参考文献
+
+1. A. D. Smith McWilliams, Z. Tang, S. Ergülen, C. A. de los Reyes, A. A. Martí, M. Pasquali,
+   *Real-Time Visualization and Dynamics of Boron Nitride Nanotubes Undergoing Brownian Motion*,
+   J. Phys. Chem. B **2020**, 124 (20), 4185–4192. DOI:
+   [10.1021/acs.jpcb.0c03663](https://doi.org/10.1021/acs.jpcb.0c03663).
+2. U. Umezaki, A. D. Smith McWilliams, Z. Tang, Z. M. S. He, I. R. Siqueira, S. J. Corr,
+   H. Ryu, A. B. Kolomeisky, M. Pasquali, A. A. Martí, *Brownian Diffusion of Hexagonal Boron
+   Nitride Nanosheets and Graphene in Two Dimensions*, ACS Nano **2024**, 18 (3), 2446–2454.
+   DOI: [10.1021/acsnano.3c11053](https://doi.org/10.1021/acsnano.3c11053).
+3. Z. Tang, S. L. Eichmann, B. Lounis, L. Cognet, F. C. MacKintosh, M. Pasquali,
+   *Single-walled carbon nanotube reptation dynamics in submicron sized pores from randomly
+   packed mono-sized colloids*, Soft Matter **2022**. DOI:
+   [10.1039/D2SM00305H](https://doi.org/10.1039/D2SM00305H).
+4. F. Gittes, B. Mickey, J. Nettleton, J. Howard, *Flexural Rigidity of Microtubules and Actin
+   Filaments Measured from Thermal Fluctuations in Shape*, J. Cell Biol. **1993**, 120 (4),
+   923–934. DOI: [10.1083/jcb.120.4.923](https://doi.org/10.1083/jcb.120.4.923).
+
 ### 关键参数（来自 `main.m`，V3）
 
 `featsize(masscut)=10`、`stdThreshold=3.0`、`maxdisp=10 px`、`goodenough=20 帧`、
@@ -113,6 +131,7 @@ flowchart TB
 `particle_length_px: int=40`、`particle_width_px: int=6`、
 `brownian_step_px: float=0.5`、`angle_step_rad: float=0.03`、
 `max_lag: int=min(50, n_frames//2)`、`msd_fit_frac: float=0.25`、
+`msd_n_lags: int=40`、
 `chunk_size: int=16`、`dask_scheduler: str="threads"`、`seed: int=0`、
 `out_dir: str="output"`。
 
@@ -153,10 +172,12 @@ flowchart TB
 
 每轨输出：`length_mean`、`length_std`、`angle_std`、`eccentricity_mean`、
 `diffusion_coefficient_px2_per_s`、`rotational_diffusion_coefficient_rad2_per_s`、
-`msd_fit_r2`。MSD/MSAD 用**内部平均**（所有等间隔点对），对前 `msd_fit_frac` 段 lag
-线性拟合；`Dt = slope/4`、`Dr = slope/2`。形状波动按 Gittes 协议：骨架提取 backbone →
-弧长参数化 → 切线角 → 旋转抛物线拟合弯曲角（v1 输出均/标准差；Fourier 模态为可选扩展，
-不进 v1 验收）。
+`msd_fit_r2`。MSD/MSAD 用**内部平均**（所有等间隔点对），在约 `msd_n_lags`（默认 40）
+个 **log 均匀分布** 的 lag 上求值——对长视频很快，且与已发表论文一致；
+`msd_curve_full`/`msad_curve_full` 提供逐 lag 的穷举版本供测试/正确性校验。对前
+`msd_fit_frac` 段 lag 线性拟合；`Dt = slope/4`、`Dr = slope/2`。形状波动按 Gittes 协议：
+骨架提取 backbone → 弧长参数化 → 切线角 → 旋转抛物线拟合弯曲角（v1 输出均/标准差；
+Fourier 模态为可选扩展，不进 v1 验收）。
 
 ### `validation.report(track, cfg) -> DataQualityReport`
 

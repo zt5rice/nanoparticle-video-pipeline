@@ -61,6 +61,24 @@ analysis → data-quality validation → export.
 | `SWNTs trackingV3.zip` | **Canonical** MATLAB code | Direct port source (see mapping below) |
 | `SWNTs tracking.rar` | Older development snapshot | Provenance only; no algorithm change (diff summary in `ref/README.md`) |
 
+### References
+
+1. A. D. Smith McWilliams, Z. Tang, S. Ergülen, C. A. de los Reyes, A. A. Martí, M. Pasquali,
+   *Real-Time Visualization and Dynamics of Boron Nitride Nanotubes Undergoing Brownian Motion*,
+   J. Phys. Chem. B **2020**, 124 (20), 4185–4192. DOI:
+   [10.1021/acs.jpcb.0c03663](https://doi.org/10.1021/acs.jpcb.0c03663).
+2. U. Umezaki, A. D. Smith McWilliams, Z. Tang, Z. M. S. He, I. R. Siqueira, S. J. Corr,
+   H. Ryu, A. B. Kolomeisky, M. Pasquali, A. A. Martí, *Brownian Diffusion of Hexagonal Boron
+   Nitride Nanosheets and Graphene in Two Dimensions*, ACS Nano **2024**, 18 (3), 2446–2454.
+   DOI: [10.1021/acsnano.3c11053](https://doi.org/10.1021/acsnano.3c11053).
+3. Z. Tang, S. L. Eichmann, B. Lounis, L. Cognet, F. C. MacKintosh, M. Pasquali,
+   *Single-walled carbon nanotube reptation dynamics in submicron sized pores from randomly
+   packed mono-sized colloids*, Soft Matter **2022**. DOI:
+   [10.1039/D2SM00305H](https://doi.org/10.1039/D2SM00305H).
+4. F. Gittes, B. Mickey, J. Nettleton, J. Howard, *Flexural Rigidity of Microtubules and Actin
+   Filaments Measured from Thermal Fluctuations in Shape*, J. Cell Biol. **1993**, 120 (4),
+   923–934. DOI: [10.1083/jcb.120.4.923](https://doi.org/10.1083/jcb.120.4.923).
+
 ### Key parameters (from `main.m`, V3)
 
 `featsize(masscut)=10`, `stdThreshold=3.0`, `maxdisp=10 px`, `goodenough=20 frames`,
@@ -125,6 +143,7 @@ flowchart TB
 `particle_length_px: int=40`, `particle_width_px: int=6`,
 `brownian_step_px: float=0.5`, `angle_step_rad: float=0.03`,
 `max_lag: int=min(50, n_frames//2)`, `msd_fit_frac: float=0.25`,
+`msd_n_lags: int=40`,
 `chunk_size: int=16`, `dask_scheduler: str="threads"`, `seed: int=0`,
 `out_dir: str="output"`.
 
@@ -167,9 +186,12 @@ Single-object tracking: each frame pick largest-area blob; link to nearest blob 
 
 Per-track: `length_mean`, `length_std`, `angle_std`, `eccentricity_mean`,
 `diffusion_coefficient_px2_per_s`, `rotational_diffusion_coefficient_rad2_per_s`,
-`msd_fit_r2`. MSD/MSAD use **internal averaging** (all pairs at each lag); linear fit over
-first `msd_fit_frac` of lags; `Dt = slope/4`, `Dr = slope/2`. Shape fluctuation follows
-the Gittes protocol: skeleton backbone → arc-length parametrization → tangent angle →
+`msd_fit_r2`. MSD/MSAD use **internal averaging** (all pairs at each lag) evaluated at
+~`msd_n_lags` (default 40) lags evenly spaced in **log scale** — fast for long videos and
+consistent with the published papers; `msd_curve_full`/`msad_curve_full` provide the
+exhaustive per-lag version for tests/correctness. Linear fit over the first
+`msd_fit_frac` of lags; `Dt = slope/4`, `Dr = slope/2`. Shape fluctuation follows the
+Gittes protocol: skeleton backbone → arc-length parametrization → tangent angle →
 rotated-parabola bending angle (mean/std in v1; Fourier modes optional, not in v1
 acceptance).
 
