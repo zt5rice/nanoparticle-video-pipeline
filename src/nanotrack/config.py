@@ -45,6 +45,8 @@ class PipelineConfig:
     brownian_step_px: float = 0.5
     # Angle random-walk step sigma (rad/frame).
     angle_step_rad: float = 0.03
+    # Initial orientation of the synthetic rod (deg); e.g. 90 for a vertical rod.
+    initial_angle_deg: float = 0.0
     # RNG seed for reproducible synthetic videos.
     seed: int = 0
 
