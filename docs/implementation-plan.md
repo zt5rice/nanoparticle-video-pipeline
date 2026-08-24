@@ -41,14 +41,16 @@ analysis → data-quality validation → export.
   is merged/closed.
 - Python 3.11 + `pip`/`requirements*.txt` (no uv/poetry); package `nanotrack` 0.1.0;
   MIT license; English code comments; docs in English + Chinese execution version.
-- `ref/` (papers + both MATLAB archives) is committed to the repo with `ref/README.md`;
-  `.DS_Store` ignored; `output/` not committed.
+- `ref/` (papers + both MATLAB archives) is **local-only**: never committed or pushed to
+  GitHub; `.DS_Store`, `output/`, and `.venv/` are gitignored.
 - Network operations (pip install, Linear API, git fetch/push, GitHub checks) require
   per-command escalation. Push uses the **user's default GitHub SSH key** (verified
   registered to GitHub user `zt5rice`); no custom key file path is required. Phase 4
   includes a push pre-check gate (see §6).
 
 ## 3. Reference Materials (`ref/`)
+
+> `ref/` is **local-only** and is never committed or pushed to GitHub.
 
 | File | Content | Role in implementation |
 |---|---|---|
@@ -268,8 +270,9 @@ MSD fit `R²≥0.7`, exactly-one-primary-object per frame (0 or >1 flagged). Out
 
 - `.github/workflows/ci.yml`: `lint-test` (Python 3.11: `ruff check src tests dags` →
   `pytest` → `scripts/smoke_test.py`) + `docker-e2e`.
-- `README.md` (quickstart, architecture diagram, tooling-mapping table, `ref/` citations,
-  license), `docs/system-design.md` (this spec's diagram), `ref/README.md`.
+- `README.md` (quickstart, architecture diagram, tooling-mapping table, reference
+  citations, license) and `docs/system-design.md` (this spec's diagram). `ref/` itself is
+  local-only and not published.
 - **Push pre-check gate**: `ssh -T git@github.com` with the **user's default GitHub SSH
   key** (verified working, user `zt5rice`); if `publickey` fails, pause and ask user to fix
   the key (or provide HTTPS PAT via env). Never force-push; non-fast-forward →
@@ -333,6 +336,6 @@ MSD fit `R²≥0.7`, exactly-one-primary-object per frame (0 or >1 flagged). Out
 
 **Phase 4 — CI/CD, docs, GitHub release (4)**
 19. GitHub Actions CI: ruff + pytest + smoke (+ `docker-e2e` job)
-20. README.md + docs/system-design.md + ref/README.md
+20. README.md + docs/system-design.md
 21. Git commit + push to `github.com/zt5rice/nanoparticle-video-pipeline` (main; SSH gate, rebase, no force)
 22. Release verification: green CI, repo tree confirmed, Linear tickets Done

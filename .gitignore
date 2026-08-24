@@ -1,0 +1,11 @@
+# macOS
+.DS_Store
+
+# Local-only reference materials (never commit or push to GitHub)
+ref/
+
+# Local outputs and Python tooling
+output/
+.venv/
+__pycache__/
+*.pyc

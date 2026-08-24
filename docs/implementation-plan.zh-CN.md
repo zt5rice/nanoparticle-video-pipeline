@@ -30,13 +30,15 @@ Actions CI 与 GitHub 发布。默认用合成数据演示；真实视频加载�
   工单仅在对应 PR 合并/关闭后置 Done。
 - Python 3.11 + `pip`/`requirements*.txt`（不用 uv/poetry）；包 `nanotrack` 0.1.0；
   MIT 许可；代码注释英文；文档英文 + 中文执行版。
-- `ref/`（论文 + 两个 MATLAB 压缩包）入库并附 `ref/README.md`；`.DS_Store` 忽略；
-  `output/` 不入库。
+- `ref/`（论文 + 两个 MATLAB 压缩包）**仅本地存放，永不提交/推送**；`.DS_Store`、
+  `output/`、`.venv/` 均忽略。
 - 网络操作（pip 安装、Linear API、git fetch/push、GitHub 检查）需逐次提权。推送使用
   **用户默认的 GitHub SSH 密钥**（已验证注册到 GitHub 用户 `zt5rice`），无需指定
   自定义密钥文件路径。Phase 4 含推送前置检查门禁（见 §6）。
 
 ## 3. 参考资料（`ref/`）
+
+> `ref/` 仅本地存放，永不提交/推送至 GitHub。
 
 | 文件 | 内容 | 在实施中的角色 |
 |---|---|---|
@@ -252,8 +254,8 @@ flowchart TB
 
 - `.github/workflows/ci.yml`：`lint-test`（Python 3.11：`ruff check src tests dags` →
   `pytest` → `scripts/smoke_test.py`）+ `docker-e2e`。
-- `README.md`（快速开始、架构图、工具映射表、`ref/` 引用、License）、
-  `docs/system-design.md`（本规格的架构图）、`ref/README.md`。
+- `README.md`（快速开始、架构图、工具映射表、参考文献引用、License）与
+  `docs/system-design.md`（本规格的架构图）。`ref/` 本身仅本地存放、不对外发布。
 - **推送前置检查门禁**：用**用户默认的 GitHub SSH 密钥**执行 `ssh -T git@github.com`
   （已验证可用，用户 `zt5rice`）；若 `publickey` 失败，暂停并请用户修复密钥
   （或经环境变量提供 HTTPS PAT）。**绝不强推**；非快进 → `git pull --rebase`。
@@ -312,6 +314,6 @@ flowchart TB
 
 **Phase 4 — CI/CD、文档、GitHub 发布（4）**
 19. GitHub Actions CI：ruff + pytest + smoke（+ `docker-e2e` job）
-20. README.md + docs/system-design.md + ref/README.md
+20. README.md + docs/system-design.md
 21. Git 提交并推送到 `github.com/zt5rice/nanoparticle-video-pipeline`（main；SSH 门禁、rebase、不强推）
 22. 发布验证：CI 全绿、仓库树确认、Linear 工单 Done
