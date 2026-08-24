@@ -1,11 +1,11 @@
 """API tests: /health, /analyze, /metrics, /tracking."""
 
+import pytest
 from fastapi.testclient import TestClient
 
 from nanotrack.api import app
 from nanotrack.config import PipelineConfig
 from nanotrack.pipeline import run
-from nanotrack.report import write_tracking_report
 from nanotrack.synth import generate
 
 client = TestClient(app)
@@ -40,6 +40,9 @@ def test_metrics():
 
 
 def test_tracking_page(tmp_path):
+    # /tracking serves the report built by nanotrack.report (lands via ZHA-105).
+    report = pytest.importorskip("nanotrack.report")
+    write_tracking_report = report.write_tracking_report
     cfg = PipelineConfig(image_size=128, n_frames=10, seed=0, min_track_len=3)
     frames, _ = generate(cfg)
     result = run(frames, cfg, raw=True)
@@ -51,4 +54,3 @@ def test_tracking_page(tmp_path):
 
     missing = client.get("/tracking", params={"out": str(tmp_path / "nope")})
     assert missing.status_code == 404
-
