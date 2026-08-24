@@ -113,6 +113,7 @@ flowchart TB
 `particle_length_px: int=40`、`particle_width_px: int=6`、
 `brownian_step_px: float=0.5`、`angle_step_rad: float=0.03`、
 `max_lag: int=min(50, n_frames//2)`、`msd_fit_frac: float=0.25`、
+`msd_n_lags: int=40`、
 `chunk_size: int=16`、`dask_scheduler: str="threads"`、`seed: int=0`、
 `out_dir: str="output"`。
 
@@ -153,10 +154,12 @@ flowchart TB
 
 每轨输出：`length_mean`、`length_std`、`angle_std`、`eccentricity_mean`、
 `diffusion_coefficient_px2_per_s`、`rotational_diffusion_coefficient_rad2_per_s`、
-`msd_fit_r2`。MSD/MSAD 用**内部平均**（所有等间隔点对），对前 `msd_fit_frac` 段 lag
-线性拟合；`Dt = slope/4`、`Dr = slope/2`。形状波动按 Gittes 协议：骨架提取 backbone →
-弧长参数化 → 切线角 → 旋转抛物线拟合弯曲角（v1 输出均/标准差；Fourier 模态为可选扩展，
-不进 v1 验收）。
+`msd_fit_r2`。MSD/MSAD 用**内部平均**（所有等间隔点对），在约 `msd_n_lags`（默认 40）
+个 **log 均匀分布** 的 lag 上求值——对长视频很快，且与已发表论文一致；
+`msd_curve_full`/`msad_curve_full` 提供逐 lag 的穷举版本供测试/正确性校验。对前
+`msd_fit_frac` 段 lag 线性拟合；`Dt = slope/4`、`Dr = slope/2`。形状波动按 Gittes 协议：
+骨架提取 backbone → 弧长参数化 → 切线角 → 旋转抛物线拟合弯曲角（v1 输出均/标准差；
+Fourier 模态为可选扩展，不进 v1 验收）。
 
 ### `validation.report(track, cfg) -> DataQualityReport`
 

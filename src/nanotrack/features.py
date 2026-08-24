@@ -25,33 +25,81 @@ def _wrap_deg(delta: np.ndarray) -> np.ndarray:
     return (delta + 180.0) % 360.0 - 180.0
 
 
-def msd_curve(xs: np.ndarray, ys: np.ndarray, max_lag: int) -> tuple[np.ndarray, np.ndarray]:
-    """Internal-averaging MSD: all position pairs at each lag."""
+def _log_spaced_lags(max_lag: int, n_lags: int) -> np.ndarray:
+    """Lags evenly distributed in log scale (1 .. max_lag), unique and sorted."""
+    if max_lag <= 0 or n_lags <= 0:
+        return np.array([], dtype=int)
+    lags = np.unique(
+        np.round(np.logspace(np.log10(1.0), np.log10(max_lag), int(n_lags))).astype(int)
+    )
+    return lags[(lags >= 1) & (lags <= max_lag)]
+
+
+def msd_curve(
+    xs: np.ndarray,
+    ys: np.ndarray,
+    max_lag: int | None = None,
+    n_lags: int = 40,
+    log_spaced: bool = True,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Internal-averaging MSD: mean squared displacement over all position pairs.
+
+    ``log_spaced=True`` (default) evaluates ~``n_lags`` lags evenly distributed in
+    log scale — O(n_lags * N) and the standard choice for long videos (e.g. 10k frames,
+    40 points). ``log_spaced=False`` evaluates every lag 1..max_lag (exhaustive; used by
+    ``msd_curve_full`` for tests/correctness).
+    """
     n = len(xs)
+    if max_lag is None:
+        max_lag = n - 1
     max_lag = int(min(max_lag, n - 1))
     if max_lag < 1 or n < 2:
         return np.array([], dtype=float), np.array([], dtype=float)
-    lags = np.arange(1, max_lag + 1, dtype=float)
-    msd = np.empty(max_lag, dtype=float)
-    for k in range(1, max_lag + 1):
-        dx = xs[k:] - xs[:-k]
-        dy = ys[k:] - ys[:-k]
-        msd[k - 1] = float(np.mean(dx * dx + dy * dy))
-    return lags, msd
+    lags = _log_spaced_lags(max_lag, n_lags) if log_spaced else np.arange(1, max_lag + 1)
+    msd = np.empty(len(lags), dtype=float)
+    for k, lag in enumerate(lags):
+        dx = xs[lag:] - xs[:-lag]
+        dy = ys[lag:] - ys[:-lag]
+        msd[k] = float(np.mean(dx * dx + dy * dy))
+    return lags.astype(float), msd
 
 
-def msad_curve(angles_deg: np.ndarray, max_lag: int) -> tuple[np.ndarray, np.ndarray]:
-    """Internal-averaging MSAD (angular displacement squared, wrapped)."""
+def msd_curve_full(
+    xs: np.ndarray, ys: np.ndarray, max_lag: int | None = None
+) -> tuple[np.ndarray, np.ndarray]:
+    """Exhaustive MSD over every lag (test/correctness helper)."""
+    return msd_curve(xs, ys, max_lag=max_lag, n_lags=0, log_spaced=False)
+
+
+def msad_curve(
+    angles_deg: np.ndarray,
+    max_lag: int | None = None,
+    n_lags: int = 40,
+    log_spaced: bool = True,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Internal-averaging MSAD (angular displacement squared, wrapped).
+
+    Same lag-sampling options as :func:`msd_curve`.
+    """
     n = len(angles_deg)
+    if max_lag is None:
+        max_lag = n - 1
     max_lag = int(min(max_lag, n - 1))
     if max_lag < 1 or n < 2:
         return np.array([], dtype=float), np.array([], dtype=float)
-    lags = np.arange(1, max_lag + 1, dtype=float)
-    msad = np.empty(max_lag, dtype=float)
-    for k in range(1, max_lag + 1):
-        delta = _wrap_deg(angles_deg[k:] - angles_deg[:-k])
-        msad[k - 1] = float(np.mean(delta * delta))
-    return lags, msad
+    lags = _log_spaced_lags(max_lag, n_lags) if log_spaced else np.arange(1, max_lag + 1)
+    msad = np.empty(len(lags), dtype=float)
+    for k, lag in enumerate(lags):
+        delta = _wrap_deg(angles_deg[lag:] - angles_deg[:-lag])
+        msad[k] = float(np.mean(delta * delta))
+    return lags.astype(float), msad
+
+
+def msad_curve_full(
+    angles_deg: np.ndarray, max_lag: int | None = None
+) -> tuple[np.ndarray, np.ndarray]:
+    """Exhaustive MSAD over every lag (test/correctness helper)."""
+    return msad_curve(angles_deg, max_lag=max_lag, n_lags=0, log_spaced=False)
 
 
 def _linear_fit(y: np.ndarray, x: np.ndarray) -> tuple[float, float, float]:
@@ -108,9 +156,9 @@ def summarize(track: dict, cfg: PipelineConfig) -> dict:
     eccs = np.array([f["eccentricity"] for f in track["frames"] if f.get("x_px") is not None], dtype=float)
     angles = _angles_deg(track)
 
-    lags, msd = msd_curve(xs, ys, cfg.max_lag)
+    lags, msd = msd_curve(xs, ys, cfg.max_lag, n_lags=cfg.msd_n_lags)
     dt_px2, msd_r2 = diffusion_coefficient(lags, msd, cfg.dt, cfg.msd_fit_frac)
-    lags_a, msad = msad_curve(angles, cfg.max_lag)
+    lags_a, msad = msad_curve(angles, cfg.max_lag, n_lags=cfg.msd_n_lags)
     dr_rad2, _msad_r2 = rotational_diffusion_coefficient(lags_a, msad, cfg.dt, cfg.msd_fit_frac)
 
     return {

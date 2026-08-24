@@ -4,7 +4,9 @@ from nanotrack.config import PipelineConfig
 from nanotrack.features import (
     diffusion_coefficient,
     msad_curve,
+    msad_curve_full,
     msd_curve,
+    msd_curve_full,
     rotational_diffusion_coefficient,
     summarize,
 )
@@ -32,6 +34,34 @@ def test_msad_wrap():
     angles = np.array([0.0, 10.0, 20.0])
     _, msad = msad_curve(angles, 2)
     np.testing.assert_allclose(msad, [100.0, 400.0])
+
+
+def test_quick_matches_full_at_shared_lags():
+    rng = np.random.default_rng(1)
+    pos = np.cumsum(rng.normal(0.0, 1.0, size=(500, 2)), axis=0)
+    lags_full, msd_full = msd_curve_full(pos[:, 0], pos[:, 1], max_lag=100)
+    lags_q, msd_q = msd_curve(pos[:, 0], pos[:, 1], max_lag=100, n_lags=40)
+    idx = np.searchsorted(lags_full, lags_q)
+    np.testing.assert_allclose(msd_q, msd_full[idx], rtol=1e-12)
+
+
+def test_log_lags_ends_and_monotonic():
+    rng = np.random.default_rng(2)
+    pos = np.cumsum(rng.normal(0.0, 1.0, size=(1000, 2)), axis=0)
+    lags, _ = msd_curve(pos[:, 0], pos[:, 1], max_lag=500, n_lags=40)
+    assert len(lags) <= 40
+    assert lags[0] == 1
+    assert lags[-1] == 500
+    assert np.all(np.diff(lags) > 0)
+
+
+def test_msad_quick_matches_full():
+    rng = np.random.default_rng(3)
+    angles = np.cumsum(rng.normal(0.0, 3.0, size=300))
+    lags_full, msad_full = msad_curve_full(angles, max_lag=100)
+    lags_q, msad_q = msad_curve(angles, max_lag=100, n_lags=40)
+    idx = np.searchsorted(lags_full, lags_q)
+    np.testing.assert_allclose(msad_q, msad_full[idx], rtol=1e-12)
 
 
 def test_rotational_diffusion():
