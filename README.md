@@ -14,6 +14,7 @@ make venv && make install   # create .venv and install dependencies
 make smoke                  # end-to-end smoke test (40 frames, 1 molecule)
 make sample && make run     # write sample data and run the pipeline
 python scripts/run_pipeline.py --input video.tif --out output   # analyze a real video
+python scripts/run_pipeline.py --out output --resume            # rebuild from detections.csv
 ```
 
 ## Layout
