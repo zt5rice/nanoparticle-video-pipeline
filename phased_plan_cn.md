@@ -12,7 +12,7 @@
 
 ## 概述
 
-保持已确认的整体设计不变：用数据工程风格重新实现作者在 MATLAB 中开发的纳米颗粒视频分析方法论，按四个阶段推进：**仓库与核心管线 → CV/并行/真实视频后端 → 服务、编排与可观测性 → CI/CD、文档与 GitHub 发布**。最终仓库位于 `<repo-root>`（Python 3.11 的 `.venv`，包 `nanotrack` 0.1.0），并推送到 `github.com/zt5rice/nanoparticle-video-pipeline`（main 分支）。每个阶段都有明确的交付物、验收标准与验证清单。全栈包括：纯 NumPy 核心（自写算法）+ OpenCV/scikit-image 预处理后端 + Dask 并行 + Airflow DAG + FastAPI/Prometheus/Grafana + Docker Compose + GitHub Actions CI + 真实视频加载（TIFF/ND2）+ ImageJ 风格预处理 notebook。
+保持已确认的整体设计不变：用数据工程风格重新实现作者在 MATLAB 中开发的纳米颗粒视频分析方法论，按四个阶段推进：**仓库与核心管线 → CV/并行/真实视频后端 → 服务、编排与可观测性 → CI/CD、文档与 GitHub 发布**。最终仓库位于本仓库（Python 3.11 的 `.venv`，包 `nanotrack` 0.1.0），并推送到 `github.com/zt5rice/nanoparticle-video-pipeline`（main 分支）。每个阶段都有明确的交付物、验收标准与验证清单。全栈包括：纯 NumPy 核心（自写算法）+ OpenCV/scikit-image 预处理后端 + Dask 并行 + Airflow DAG + FastAPI/Prometheus/Grafana + Docker Compose + GitHub Actions CI + 真实视频加载（TIFF/ND2）+ ImageJ 风格预处理 notebook。
 
 ### 系统设计图
 
@@ -77,7 +77,7 @@ nd2>=0.9
 
 ## 阶段 1：仓库脚手架、venv 与核心 NumPy 管线 + 测试
 
-- 仓库重组：在 `<repo-root>` 创建 `.gitignore`、`LICENSE`（MIT）、`pyproject.toml`、`requirements.txt`、`requirements-dev.txt`、`Makefile`；创建 `.venv`（Python 3.11）并安装 `requirements-dev.txt`；在 `requirements.txt` 顶部添加包含包名/版本号的注释。
+- 仓库重组：在仓库根目录创建 `.gitignore`、`LICENSE`（MIT）、`pyproject.toml`、`requirements.txt`、`requirements-dev.txt`、`Makefile`；创建 `.venv`（Python 3.11）并安装 `requirements-dev.txt`；在 `requirements.txt` 顶部添加包含包名/版本号的注释。
 - 核心库 `src/nanotrack/`：
   - `config.py` — `PipelineConfig` 数据类（backend、n_frames、n_particles、image_size、noise、background_strength、min_area、max_track_dist、dt、max_lag、chunk_size、dask_scheduler、out_dir）+ `from_yaml()`。
   - `synth.py` — 合成显微镜风格视频：棒状椭圆颗粒做二维布朗运动（x/y/角度随机游走）；返回 `(uint8 frames, ground_truth dict)`；纯 NumPy。
@@ -136,7 +136,7 @@ nd2>=0.9
 
 - `.github/workflows/ci.yml` — Python 3.11：`pip install -r requirements-dev.txt` → `ruff check src tests dags` → `pytest` → `python scripts/smoke_test.py`。
 - 文档：`README.md`（快速开始、架构图、工具映射表、许可证）与 `docs/system-design.md`（本文档）。
-- Git：`git init -b main`，add，commit（约定式提交信息），设置远端 `git@github.com:zt5rice/nanoparticle-video-pipeline.git`，使用 `GIT_SSH_COMMAND="ssh -i <user-ssh-key> -o IdentitiesOnly=yes"` 推送到 `main`；若远端已有初始提交，先 `git fetch` + `git pull --rebase`（绝不强推）。
+- Git：`git init -b main`，add，commit（约定式提交信息），设置远端 `git@github.com:zt5rice/nanoparticle-video-pipeline.git`，使用用户默认的 GitHub SSH 密钥推送到 `main`；若远端已有初始提交，先 `git fetch` + `git pull --rebase`（绝不强推）。
 - 验收：本地 ruff/pytest/smoke 全绿；提交已推送；GitHub 仓库显示完整目录树且 CI 通过。
 - 验证清单：
   - `.venv/bin/python -m ruff check src tests dags` 无告警
@@ -149,7 +149,7 @@ nd2>=0.9
 - 阶段顺序严格遵循用户指定（仓库/核心 → CV/并行/真实视频 → 服务/编排/可观测性 → CI/文档/发布），与参考项目的分阶段计划风格一致。
 - 仓库文档均为英文；demo 默认使用合成数据；真实视频加载器（TIFF/ND2）受支持但不要求进入 CI。
 - “ImageJ 风格预处理”指 Python 等价实现（rolling-ball/median/Otsu），不是 pyimagej/JVM；不追求复现 ImageJ 的逐字节输出。
-- 沙箱内 GitHub 网络不可达，且 `<repo-root>` 不在沙箱可写目录内：实施时先在 暂存工作区暂存文件，再对复制/venv/网络/push 步骤申请提权。若 git MCP 工具可用则优先使用；否则用 git CLI + 现有 SSH 密钥。
+- 沙箱内 GitHub 网络不可达，且仓库根目录不在沙箱可写目录内：实施时先在暂存工作区存放文件，再对复制/venv/网络/push 步骤申请提权。若 git MCP 工具可用则优先使用；否则用 git CLI + 用户默认的 SSH 密钥。
 - Python 版本固定为 3.11；所有命令使用仓库本地 `.venv`。
 - 推送目标为 `main`；非快进情况通过 rebase 处理，绝不强推。
 

@@ -32,8 +32,9 @@ Actions CI 与 GitHub 发布。默认用合成数据演示；真实视频加载�
   MIT 许可；代码注释英文；文档英文 + 中文执行版。
 - `ref/`（论文 + 两个 MATLAB 压缩包）入库并附 `ref/README.md`；`.DS_Store` 忽略；
   `output/` 不入库。
-- 网络操作（pip 安装、Linear API、git fetch/push、GitHub 检查）需逐次提权。当前 SSH
-  密钥 `publickey` 认证失败，Phase 4 含推送前置检查门禁（见 §6）。
+- 网络操作（pip 安装、Linear API、git fetch/push、GitHub 检查）需逐次提权。推送使用
+  **用户默认的 GitHub SSH 密钥**（已验证注册到 GitHub 用户 `zt5rice`），无需指定
+  自定义密钥文件路径。Phase 4 含推送前置检查门禁（见 §6）。
 
 ## 3. 参考资料（`ref/`）
 
@@ -253,9 +254,9 @@ flowchart TB
   `pytest` → `scripts/smoke_test.py`）+ `docker-e2e`。
 - `README.md`（快速开始、架构图、工具映射表、`ref/` 引用、License）、
   `docs/system-design.md`（本规格的架构图）、`ref/README.md`。
-- **推送前置检查门禁**：用 `<user-ssh-key>` 执行
-  `ssh -T git@github.com`；若 `publickey` 失败，暂停并请用户将 `<user-ssh-key>.pub`
-  加入 GitHub（或经环境变量提供 HTTPS PAT）。**绝不强推**；非快进 → `git pull --rebase`。
+- **推送前置检查门禁**：用**用户默认的 GitHub SSH 密钥**执行 `ssh -T git@github.com`
+  （已验证可用，用户 `zt5rice`）；若 `publickey` 失败，暂停并请用户修复密钥
+  （或经环境变量提供 HTTPS PAT）。**绝不强推**；非快进 → `git pull --rebase`。
 - **验收**：Actions 全绿；GitHub 仓库树完整；Linear 工单随 PR 合并全部 Done。
 
 ## 7. 测试计划
