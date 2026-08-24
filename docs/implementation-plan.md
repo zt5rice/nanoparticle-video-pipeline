@@ -237,6 +237,8 @@ MSD fit `R²≥0.7`, exactly-one-primary-object per frame (0 or >1 flagged). Out
 ### CLI & Airflow
 
 - `python scripts/run_pipeline.py --backend {numpy|opencv|skimage} --config config.yaml --out output`
+- Real videos: `python scripts/run_pipeline.py --input video.tif --out output` (TIFF/ND2;
+  analyzes the whole movie, or `--n-frames N` for a prefix)
 - Airflow DAG `nanoparticle_video_pipeline`: `generate → preprocess → detect_track →
   features_validate → export`, `@daily`, `catchup=False`, LocalExecutor; writes
   `output/latest_result.json` (same schema as `result.json`).
