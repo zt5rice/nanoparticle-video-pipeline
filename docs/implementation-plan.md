@@ -125,6 +125,7 @@ flowchart TB
 `particle_length_px: int=40`, `particle_width_px: int=6`,
 `brownian_step_px: float=0.5`, `angle_step_rad: float=0.03`,
 `max_lag: int=min(50, n_frames//2)`, `msd_fit_frac: float=0.25`,
+`msd_n_lags: int=40`,
 `chunk_size: int=16`, `dask_scheduler: str="threads"`, `seed: int=0`,
 `out_dir: str="output"`.
 
@@ -167,9 +168,12 @@ Single-object tracking: each frame pick largest-area blob; link to nearest blob 
 
 Per-track: `length_mean`, `length_std`, `angle_std`, `eccentricity_mean`,
 `diffusion_coefficient_px2_per_s`, `rotational_diffusion_coefficient_rad2_per_s`,
-`msd_fit_r2`. MSD/MSAD use **internal averaging** (all pairs at each lag); linear fit over
-first `msd_fit_frac` of lags; `Dt = slope/4`, `Dr = slope/2`. Shape fluctuation follows
-the Gittes protocol: skeleton backbone → arc-length parametrization → tangent angle →
+`msd_fit_r2`. MSD/MSAD use **internal averaging** (all pairs at each lag) evaluated at
+~`msd_n_lags` (default 40) lags evenly spaced in **log scale** — fast for long videos and
+consistent with the published papers; `msd_curve_full`/`msad_curve_full` provide the
+exhaustive per-lag version for tests/correctness. Linear fit over the first
+`msd_fit_frac` of lags; `Dt = slope/4`, `Dr = slope/2`. Shape fluctuation follows the
+Gittes protocol: skeleton backbone → arc-length parametrization → tangent angle →
 rotated-parabola bending angle (mean/std in v1; Fourier modes optional, not in v1
 acceptance).
 

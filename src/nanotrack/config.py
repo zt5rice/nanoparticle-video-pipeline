@@ -34,6 +34,7 @@ class PipelineConfig:
     angle_step_rad: float = 0.03
     max_lag: int | None = None
     msd_fit_frac: float = 0.25
+    msd_n_lags: int = 40
     chunk_size: int = 16
     dask_scheduler: str = "threads"
     seed: int = 0
@@ -59,4 +60,3 @@ class PipelineConfig:
     def from_yaml(cls, path: str | Path) -> PipelineConfig:
         data = yaml.safe_load(Path(path).read_text(encoding="utf-8")) or {}
         return cls(**{k: v for k, v in data.items() if k in cls.__dataclass_fields__})
-
