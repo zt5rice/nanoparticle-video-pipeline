@@ -48,7 +48,7 @@ def generate(cfg: PipelineConfig) -> tuple[np.ndarray, dict]:
     particles: list[dict] = []
 
     x, y = w / 2.0, h / 2.0
-    angle_deg = 0.0
+    angle_deg = float(cfg.initial_angle_deg)
     margin = float(cfg.particle_length_px)
     step_deg = np.degrees(cfg.angle_step_rad)
     area = float(np.pi * cfg.particle_length_px * cfg.particle_width_px / 4.0)
@@ -87,4 +87,3 @@ def generate(cfg: PipelineConfig) -> tuple[np.ndarray, dict]:
 
     ground_truth = {"n_molecules": 1, "particles": particles}
     return frames.astype(np.uint8), ground_truth
-

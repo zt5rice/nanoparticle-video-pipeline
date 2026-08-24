@@ -130,6 +130,7 @@ flowchart TB
 `noise_sigma: float=8.0`、`background_strength: float=20.0`、
 `particle_length_px: int=40`、`particle_width_px: int=6`、
 `brownian_step_px: float=0.5`、`angle_step_rad: float=0.03`、
+`initial_angle_deg: float=0.0`、
 `max_lag: int=min(50, n_frames//2)`、`msd_fit_frac: float=0.25`、
 `msd_n_lags: int=40`、
 `chunk_size: int=16`、`dask_scheduler: str="threads"`、`seed: int=0`、
@@ -177,7 +178,8 @@ flowchart TB
 `msd_curve_full`/`msad_curve_full` 提供逐 lag 的穷举版本供测试/正确性校验。对前
 `msd_fit_frac` 段 lag 线性拟合；`Dt = slope/4`、`Dr = slope/2`。形状波动按 Gittes 协议：
 骨架提取 backbone → 弧长参数化 → 切线角 → 旋转抛物线拟合弯曲角（v1 输出均/标准差；
-Fourier 模态为可选扩展，不进 v1 验收）。
+Fourier 模态为可选扩展，不进 v1 验收）。朝向角在追踪时按 180° 周期连续化（竖直杆不会在
+±90° 处假跳变），MSAD 的角度差按 [-90°, 90°) 回绕。
 
 ### `validation.report(track, cfg) -> DataQualityReport`
 

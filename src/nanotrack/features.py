@@ -21,8 +21,10 @@ def _angles_deg(track: dict) -> np.ndarray:
     )
 
 
-def _wrap_deg(delta: np.ndarray) -> np.ndarray:
-    return (delta + 180.0) % 360.0 - 180.0
+def _wrap_deg(delta: np.ndarray, period: float = 360.0) -> np.ndarray:
+    """Wrap angular differences to [-period/2, period/2)."""
+    half = period / 2.0
+    return (delta + half) % period - half
 
 
 def _log_spaced_lags(max_lag: int, n_lags: int) -> np.ndarray:
@@ -90,7 +92,9 @@ def msad_curve(
     lags = _log_spaced_lags(max_lag, n_lags) if log_spaced else np.arange(1, max_lag + 1)
     msad = np.empty(len(lags), dtype=float)
     for k, lag in enumerate(lags):
-        delta = _wrap_deg(angles_deg[lag:] - angles_deg[:-lag])
+        # Orientation is periodic with 180 deg, so wrap to [-90, 90): a rod at +89
+        # and -89 differ by only 2 deg, not 178.
+        delta = _wrap_deg(angles_deg[lag:] - angles_deg[:-lag], period=180.0)
         msad[k] = float(np.mean(delta * delta))
     return lags.astype(float), msad
 
