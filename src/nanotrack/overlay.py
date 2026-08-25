@@ -71,7 +71,13 @@ def overlay_tracks(
                     cv2.polylines(img, [pts], isClosed=False, color=trail_color, thickness=1)
             color = interp_color if entry.get("interpolated") else marker_color
             cv2.circle(img, (round(float(x)), round(float(y))), 3, color, thickness=-1)
-            if draw_orientation and entry.get("angle") is not None:
+            # Interpolated (gap-filled) frames get a position marker only: their
+            # orientation is a bridging estimate and drawing it would fake a rotation.
+            if (
+                draw_orientation
+                and not entry.get("interpolated")
+                and entry.get("angle") is not None
+            ):
                 # Orientation is mod 180 deg; draw a half-length line along it.
                 ang = np.radians(float(entry["angle"]) % 180.0)
                 length = float(entry.get("length", 20.0)) * 0.5
