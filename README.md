@@ -41,6 +41,42 @@ fluorescence videos (TIFF / ND2).
 
 > `ref/` (papers + MATLAB source) is local-only and not part of the repository.
 
+## System design
+
+```mermaid
+flowchart TB
+    subgraph IN["Input"]
+        A1["synth.py: 1 molecule/video"]
+        A2["real video TIFF / ND2 (io.py)"]
+    end
+    subgraph CORE["Core pipeline (src/nanotrack)"]
+        B1["preprocess (numpy | opencv | skimage)"]
+        B2["detect (threshold + CC + ellipse moments)"]
+        B3["track (SPT: nearest within max_disp + gap fill)"]
+        B4["features (MSD / MSAD / Dt / Dr / shape fluct.)"]
+        B5["validate (data-quality checks)"]
+        B6["export (JSON / CSV / overlay / QC HTML)"]
+    end
+    subgraph OPS["Orchestration & serving"]
+        C1["Airflow DAG"]
+        C2["FastAPI /analyze + /tracking"]
+        C3["Dask parallel chunk map"]
+    end
+    subgraph OBS["Observability"]
+        D1["Prometheus"]
+        D2["Grafana"]
+    end
+    A1 --> B1
+    A2 --> B1
+    B1 --> B2 --> B3 --> B4 --> B5 --> B6
+    C3 -.-> B1
+    C1 -.-> CORE
+    C2 --> D1 --> D2
+    B6 --> C2
+```
+
+See [`docs/system-design.md`](docs/system-design.md) for the component table and data flow.
+
 ## Quick start
 
 ```bash
@@ -67,6 +103,16 @@ Services: API `:8000`, Airflow `:8080`, Prometheus `:9090`, Grafana `:3000`.
 
 ## Example outputs
 
+**Observability & orchestration stack** (simulated previews with sample data; see the
+real stack via `docker compose up` — Airflow `:8080`, Prometheus `:9090`, Grafana
+`:3000`):
+
+![Grafana nanotrack-pipeline dashboard](docs/assets/grafana_preview.png)
+
+![Apache Airflow DAG](docs/assets/airflow_preview.png)
+
+![Prometheus targets & graph](docs/assets/prometheus_preview.png)
+
 **Tracking QC report** — an interactive HTML report is written to
 `output/tracking_report.html` after every run (trajectory overlaid on the first frame,
 x/y vs frame, unwrapped angle in deg vs frame, MSD/MSAD vs lag on log-log (base 10)
@@ -79,7 +125,8 @@ the full 3×2 QC report from a 10,000-frame single-molecule SWCNT video
 (`--max-lag 5000`). The MSD panel shows the Fakhri et al. (Science 2010)
 parallel/perpendicular MSD regimes: anisotropic short-time `Δs² >> Δn²`, the
 super-linear crossover `Δn² ~ D∥·D_r·t²`, and the onset of isotropic convergence
-beyond `τ_r = 1/(2D_r)`:
+beyond `τ_r = 1/(2D_r)`. Demo video courtesy of Fakhri et al., Science 2010 —
+please cite the source paper (see [Citation](#citation)):
 
 ![Tracking QC report — 10k-frame par/perp MSD trend](docs/assets/tracking_report_nt3_full.png)
 
@@ -89,16 +136,6 @@ onto the input video (`output/tracking_overlay.mp4`, or `.gif` / `.png` via
 
 ![Tracking overlay on a single-molecule video](docs/assets/tracking_overlay.gif)
 
-**Observability & orchestration stack** (simulated previews with sample data; see the
-real stack via `docker compose up` — Airflow `:8080`, Prometheus `:9090`, Grafana
-`:3000`):
-
-![Grafana nanotrack-pipeline dashboard](docs/assets/grafana_preview.png)
-
-![Apache Airflow DAG](docs/assets/airflow_preview.png)
-
-![Prometheus targets & graph](docs/assets/prometheus_preview.png)
-
 ## Citation
 
 If you use this tool in your work, please cite the methodology paper:
@@ -107,6 +144,13 @@ If you use this tool in your work, please cite the methodology paper:
 > *Single-walled carbon nanotube reptation dynamics in submicron sized pores from
 > randomly packed mono-sized colloids*, Soft Matter **2022**.
 > DOI: [10.1039/D2SM00305H](https://doi.org/10.1039/D2SM00305H)
+
+The 10,000-frame demo video in the example outputs is from:
+
+> N. Fakhri, F. C. MacKintosh, B. Lounis, L. Cognet, M. Pasquali,
+> *Brownian Motion of Stiff Filaments in a Crowded Environment*, Science **2010**,
+> 330 (6012), 1804–1807.
+> DOI: [10.1126/science.1197321](https://doi.org/10.1126/science.1197321)
 
 ## Layout
 
