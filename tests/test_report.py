@@ -20,6 +20,14 @@ def test_report_html_contains_sections(tmp_path):
     html = build_tracking_report(result, cfg, frames)
     for marker in ("tracking QC", "angle", "MSD", "plotly"):
         assert marker in html
+    for marker in (
+        "MSD parallel",
+        "MSD perpendicular",
+        "D_parallel",
+        "D_perpendicular",
+        "anisotropy",
+    ):
+        assert marker in html
     # Frame overlay is rendered as a plotly image trace.
     assert '"type":"image"' in html
     # Axis labels are present on all four panels.
@@ -28,8 +36,13 @@ def test_report_html_contains_sections(tmp_path):
         "MSD (px^2)", "MSAD (rad^2)",
     ):
         assert label in html
-    # Log-log (base 10) axes are enabled for the MSD/MSAD panels.
-    assert '"type":"log"' in html
+    # Log-log (base 10) axes are enabled for both MSD and MSAD panels
+    # (x + y for each -> at least 4 log axes).
+    assert html.count('"type":"log"') >= 4
+    # Summary text is anchored in paper coordinates so it renders inside the
+    # Summary cell in all browsers (domain-referenced annotations on hidden
+    # axes are mispositioned).
+    assert '"xref":"paper"' in html
 
     path = write_tracking_report(result, cfg, tmp_path / "tracking_report.html", frames)
     assert path.exists()
@@ -45,3 +58,14 @@ def test_report_angle_plotted_in_degrees():
     angle_trace = next(t for t in fig.data if t.name == "angle_deg")
     y = np.asarray(angle_trace.y, dtype=float)
     assert np.nanmax(np.abs(y)) < 40.0
+
+
+def test_report_has_parallel_perpendicular_traces():
+    """The QC figure contains the rod-frame MSD parallel/perpendicular traces."""
+    cfg = PipelineConfig(image_size=128, n_frames=40, seed=0, min_track_len=5)
+    frames, _ = generate(cfg)
+    result = run(frames, cfg, raw=True)
+    fig = build_tracking_report_figure(result, cfg, frames)
+    names = {t.name for t in fig.data}
+    assert "MSD parallel" in names
+    assert "MSD perpendicular" in names
