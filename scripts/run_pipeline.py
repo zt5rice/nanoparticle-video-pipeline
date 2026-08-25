@@ -28,6 +28,18 @@ TRACK_COLUMNS = [
 ]
 
 
+def _has_explicit_max_lag(path: str | Path | None) -> bool:
+    """True when the YAML config explicitly sets ``max_lag``, so the CLI must
+    not overwrite it with the 50-frame default for the real-video path."""
+    if not path:
+        return False
+    try:
+        data = yaml.safe_load(Path(path).read_text(encoding="utf-8")) or {}
+    except Exception:  # noqa: BLE001 - a missing/invalid config is reported later
+        return False
+    return "max_lag" in data
+
+
 def _write_outputs(
     result_raw: dict,
     cfg: PipelineConfig,
@@ -76,6 +88,13 @@ def main() -> None:
     )
     ap.add_argument("--out", default="output", help="output directory (result.json)")
     ap.add_argument("--n-frames", type=int, default=None)
+    ap.add_argument(
+        "--max-lag",
+        type=int,
+        default=None,
+        help="max lag (frames) for MSD/MSAD/par-perp panels; overrides config "
+        "(set > 50 to reveal the Fakhri Fig. 3B par/perp regimes)",
+    )
     ap.add_argument("--seed", type=int, default=None)
     ap.add_argument(
         "--resume",
@@ -95,12 +114,16 @@ def main() -> None:
     )
     args = ap.parse_args()
 
+    explicit_max_lag = _has_explicit_max_lag(args.config)
     if args.config:
         cfg = PipelineConfig.from_yaml(args.config)
         if args.backend:
             cfg.backend = args.backend
     else:
         cfg = PipelineConfig(backend=args.backend or "numpy")
+    if args.max_lag is not None:
+        cfg.max_lag = max(1, int(args.max_lag))
+        explicit_max_lag = True
     if args.n_frames:
         cfg.n_frames = args.n_frames
     if args.seed is not None:
@@ -120,9 +143,12 @@ def main() -> None:
             cfg = PipelineConfig.from_yaml(out / "config.yaml")
             if args.backend:
                 cfg.backend = args.backend
+            # The saved config reflects the settings that produced the detections.
+            explicit_max_lag = True
         blobs = read_detections_rows(det_path)
         cfg.n_frames = len(blobs)
-        cfg.max_lag = min(50, max(1, cfg.n_frames // 2))
+        if not explicit_max_lag:
+            cfg.max_lag = min(50, max(1, cfg.n_frames // 2))
         result_raw = run_from_detections(blobs, cfg, ground_truth=None, raw=True)
     else:
         gt = None
@@ -139,11 +165,14 @@ def main() -> None:
                 cfg.n_frames = max(1, min(int(args.n_frames), frames.shape[0]))
             else:
                 cfg.n_frames = frames.shape[0]
-            # Re-derive max_lag for the actual number of frames.
-            cfg.max_lag = min(50, max(1, cfg.n_frames // 2))
+            # Only fall back to the 50-frame cap when max_lag was not explicit.
+            if not explicit_max_lag:
+                cfg.max_lag = min(50, max(1, cfg.n_frames // 2))
             # --n-frames limits the analysis to a prefix of the video.
             frames = frames[: cfg.n_frames]
         else:
+            if not explicit_max_lag:
+                cfg.max_lag = min(50, max(1, cfg.n_frames // 2))
             frames, gt = generate(cfg)
         result_raw = run(frames, cfg, gt, raw=True)
 
