@@ -36,7 +36,6 @@ def build_tracking_report_figure(
     fig = make_subplots(
         rows=3,
         cols=2,
-        specs=[[{}, {}], [{}, {}], [{}, {"type": "domain"}]],
         subplot_titles=(
             "Trajectory (px)",
             "x / y vs frame",
@@ -114,7 +113,16 @@ def build_tracking_report_figure(
         )
         if len(lags) > 1:
             fig.add_trace(
-                go.Scatter(x=lags, y=msd, mode="markers+lines", name="MSD"), row=2, col=2
+                go.Scatter(
+                    x=lags,
+                    y=msd,
+                    mode="markers+lines",
+                    name="MSD",
+                    line={"color": "#1f77b4", "width": 3},
+                    marker={"size": 7},
+                ),
+                row=2,
+                col=2,
             )
         lags_p, msd_par, msd_perp = msd_parallel_perpendicular(
             xs[present],
@@ -125,12 +133,26 @@ def build_tracking_report_figure(
         )
         if len(lags_p) > 1:
             fig.add_trace(
-                go.Scatter(x=lags_p, y=msd_par, mode="markers+lines", name="MSD parallel"),
+                go.Scatter(
+                    x=lags_p,
+                    y=msd_par,
+                    mode="markers+lines",
+                    name="MSD parallel",
+                    line={"color": "#ff7f0e", "width": 2, "dash": "dash"},
+                    marker={"size": 6},
+                ),
                 row=2,
                 col=2,
             )
             fig.add_trace(
-                go.Scatter(x=lags_p, y=msd_perp, mode="markers+lines", name="MSD perpendicular"),
+                go.Scatter(
+                    x=lags_p,
+                    y=msd_perp,
+                    mode="markers+lines",
+                    name="MSD perpendicular",
+                    line={"color": "#2ca02c", "width": 2, "dash": "dot"},
+                    marker={"size": 6},
+                ),
                 row=2,
                 col=2,
             )
@@ -146,43 +168,51 @@ def build_tracking_report_figure(
                 col=1,
             )
 
-    # 6. Summary panel. Rendered as a Table trace so the text is guaranteed to
-    # appear inside the Summary cell (domain-referenced annotations on hidden
-    # axes are positioned unreliably across browsers).
+    # 6. Summary panel. The figure uses a fixed width/margins so the Summary
+    # cell's top-left corner can be computed in paper coordinates; a
+    # paper-referenced annotation always renders in the right cell across
+    # browsers (domain-referenced annotations on hidden axes do not).
     s = result.get("summary", {}) or {}
     q = result.get("quality", {}) or {}
 
     def _fmt(value, fmt):
         return fmt % value if value is not None else "n/a"
 
-    summary_rows = [
-        f"tracks: {result.get('n_tracks', 'n/a')}",
-        f"pass_rate: {q.get('pass_rate', 'n/a')}",
-        f"length_mean: {_fmt(s.get('length_mean'), '%.2f px')}",
-        f"length_std: {_fmt(s.get('length_std'), '%.2f px')}",
-        f"angle_std: {_fmt(s.get('angle_std'), '%.2f deg')}",
-        f"eccentricity_mean: {_fmt(s.get('eccentricity_mean'), '%.3f')}",
-        f"Dt: {_fmt(s.get('diffusion_coefficient_px2_per_s'), '%.3f px²/s')}",
-        f"Dr: {_fmt(s.get('rotational_diffusion_coefficient_rad2_per_s'), '%.5f rad²/s')}",
-        f"MSD fit R²: {_fmt(s.get('msd_fit_r2'), '%.3f')}",
-        f"D_parallel: {_fmt(s.get('diffusion_coefficient_parallel_px2_per_s'), '%.3f px²/s')}",
-        f"D_perpendicular: {_fmt(s.get('diffusion_coefficient_perpendicular_px2_per_s'), '%.3f px²/s')}",
-        f"anisotropy D_par/D_perp: {_fmt(s.get('diffusion_anisotropy_ratio'), '%.2f')}",
-    ]
-    fig.add_trace(
-        go.Table(
-            header={"values": [""], "height": 8, "fill_color": "rgba(0,0,0,0)"},
-            cells={
-                "values": [summary_rows],
-                "align": "left",
-                "height": 18,
-                "font": {"size": 11},
-                "fill_color": "rgba(0,0,0,0)",
-            },
-            columnwidth=[1],
-        ),
-        row=3,
-        col=2,
+    summary_text = (
+        f"tracks: {result.get('n_tracks', 'n/a')}<br>"
+        f"pass_rate: {q.get('pass_rate', 'n/a')}<br>"
+        f"length_mean: {_fmt(s.get('length_mean'), '%.2f px')}<br>"
+        f"length_std: {_fmt(s.get('length_std'), '%.2f px')}<br>"
+        f"angle_std: {_fmt(s.get('angle_std'), '%.2f deg')}<br>"
+        f"eccentricity_mean: {_fmt(s.get('eccentricity_mean'), '%.3f')}<br>"
+        f"Dt: {_fmt(s.get('diffusion_coefficient_px2_per_s'), '%.3f px²/s')}<br>"
+        f"Dr: {_fmt(s.get('rotational_diffusion_coefficient_rad2_per_s'), '%.5f rad²/s')}<br>"
+        f"MSD fit R²: {_fmt(s.get('msd_fit_r2'), '%.3f')}<br>"
+        f"D_parallel: {_fmt(s.get('diffusion_coefficient_parallel_px2_per_s'), '%.3f px²/s')}<br>"
+        f"D_perpendicular: {_fmt(s.get('diffusion_coefficient_perpendicular_px2_per_s'), '%.3f px²/s')}<br>"
+        f"anisotropy D_par/D_perp: {_fmt(s.get('diffusion_anisotropy_ratio'), '%.2f')}"
+    )
+
+    # Fixed geometry so the paper-coordinate anchor is deterministic.
+    FIG_W, FIG_H = 1200.0, 1100.0
+    MARGIN = {"l": 80, "r": 80, "t": 100, "b": 80}
+    plot_w = FIG_W - MARGIN["l"] - MARGIN["r"]
+    plot_h = FIG_H - MARGIN["t"] - MARGIN["b"]
+    y6_domain = fig.layout.yaxis6.domain  # (bottom, top) of the cell
+    x6_domain = fig.layout.xaxis6.domain
+    summary_x = (MARGIN["l"] + x6_domain[0] * plot_w) / FIG_W
+    summary_y = (MARGIN["b"] + y6_domain[1] * plot_h) / FIG_H  # top of Summary cell
+    fig.add_annotation(
+        xref="paper",
+        yref="paper",
+        x=summary_x,
+        y=summary_y,
+        text=summary_text,
+        showarrow=False,
+        align="left",
+        xanchor="left",
+        yanchor="top",
+        font={"size": 11},
     )
 
     quality = result.get("quality", {})
@@ -190,7 +220,13 @@ def build_tracking_report_figure(
         f"nanotrack tracking QC — frames={len(xs)} tracks={result.get('n_tracks')} "
         f"pass_rate={quality.get('pass_rate')}"
     )
-    fig.update_layout(title=title, height=1100, showlegend=True)
+    fig.update_layout(
+        title=title,
+        width=FIG_W,
+        height=FIG_H,
+        margin=MARGIN,
+        showlegend=True,
+    )
     fig.update_xaxes(title_text="x (px)", row=1, col=1)
     fig.update_yaxes(title_text="y (px)", row=1, col=1, scaleanchor="x")
     fig.update_xaxes(title_text="frame", row=1, col=2)
@@ -201,6 +237,8 @@ def build_tracking_report_figure(
     fig.update_yaxes(title_text="MSD (px^2)", row=2, col=2, type="log")
     fig.update_xaxes(title_text="lag (frames)", row=3, col=1, type="log")
     fig.update_yaxes(title_text="MSAD (rad^2)", row=3, col=1, type="log")
+    fig.update_xaxes(visible=False, row=3, col=2)
+    fig.update_yaxes(visible=False, row=3, col=2)
     return fig
 
 
