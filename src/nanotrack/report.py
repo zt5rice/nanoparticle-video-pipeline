@@ -39,7 +39,15 @@ def build_tracking_report(
 
     # 1. Trajectory (optionally overlaid on the first frame image).
     if frames is not None and frames.shape[0] > 0:
-        fig.add_trace(go.Image(z=frames[0]), row=1, col=1)
+        # Render the grayscale frame as an explicit RGB image so it is visible and
+        # pixel-aligned (x/y in pixel coordinates, row 0 at the top).
+        gray = frames[0]
+        rgb = np.stack([gray, gray, gray], axis=-1)
+        fig.add_trace(
+            go.Image(z=rgb, x0=0, y0=0, dx=1, dy=1, hovertemplate="x=%{x}<br>y=%{y}<extra></extra>"),
+            row=1,
+            col=1,
+        )
     fig.add_trace(
         go.Scatter(
             x=xs[present],
@@ -87,6 +95,14 @@ def build_tracking_report(
         f"pass_rate={quality.get('pass_rate')}"
     )
     fig.update_layout(title=title, height=800, showlegend=True)
+    fig.update_xaxes(title_text="x (px)", row=1, col=1)
+    fig.update_yaxes(title_text="y (px)", row=1, col=1, scaleanchor="x")
+    fig.update_xaxes(title_text="frame", row=1, col=2)
+    fig.update_yaxes(title_text="px", row=1, col=2)
+    fig.update_xaxes(title_text="frame", row=2, col=1)
+    fig.update_yaxes(title_text="angle (rad)", row=2, col=1)
+    fig.update_xaxes(title_text="lag (frames)", row=2, col=2)
+    fig.update_yaxes(title_text="MSD (px^2)", row=2, col=2)
     return fig.to_html(full_html=True, include_plotlyjs=True)
 
 
