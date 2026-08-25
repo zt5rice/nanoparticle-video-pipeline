@@ -60,8 +60,10 @@ def _features_validate() -> dict:
     cfg = PipelineConfig(n_frames=len(blobs), seed=0, backend="numpy")
     result = run_from_detections(blobs, cfg, raw=True)
     (INTER / "result.json").write_text(
-        json.dumps({k: v for k, v in result.items() if k not in ("detections", "track")}),
-        indent=2,
+        json.dumps(
+            {k: v for k, v in result.items() if k not in ("detections", "track")},
+            indent=2,
+        ),
         encoding="utf-8",
     )
     return {"pass_rate": result["quality"]["pass_rate"]}
