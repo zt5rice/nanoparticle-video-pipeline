@@ -25,6 +25,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Prepare writable output directory
+        # Airflow containers run as the non-root 'airflow' user; the bind-mounted
+        # ./output must be writable by them (and by the API container).
+        run: mkdir -p output && chmod -R 777 output
       - name: Build and start the stack
         run: docker compose up --build -d
       - name: Wait for API
