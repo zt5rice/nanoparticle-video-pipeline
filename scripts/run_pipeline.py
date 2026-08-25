@@ -13,6 +13,7 @@ import yaml
 
 from nanotrack.config import BACKENDS, PipelineConfig
 from nanotrack.export import detections_to_rows, read_detections_rows, track_to_rows, write_csv
+from nanotrack.overlay import overlay_tracks
 from nanotrack.pipeline import run, run_from_detections
 from nanotrack.report import write_tracking_report
 from nanotrack.synth import generate
@@ -28,7 +29,12 @@ TRACK_COLUMNS = [
 
 
 def _write_outputs(
-    result_raw: dict, cfg: PipelineConfig, out: Path, frames=None
+    result_raw: dict,
+    cfg: PipelineConfig,
+    out: Path,
+    frames=None,
+    overlay: bool = False,
+    overlay_format: str = "mp4",
 ) -> None:
     """Write result.json (summary), raw CSVs, config.yaml, and ground truth."""
     out.mkdir(parents=True, exist_ok=True)
@@ -45,6 +51,14 @@ def _write_outputs(
     if "track" in result_raw:
         write_csv(out / "tracks.csv", track_to_rows(result_raw["track"], cfg), columns=TRACK_COLUMNS)
         write_tracking_report(result_raw, cfg, out / "tracking_report.html", frames=frames)
+        if overlay and frames is not None and frames.shape[0] > 0:
+            overlay_tracks(
+                frames,
+                result_raw["track"],
+                out / f"tracking_overlay.{overlay_format}",
+                cfg,
+                format=overlay_format,
+            )
     if result_raw.get("ground_truth") is not None:
         (out / "ground_truth.json").write_text(
             json.dumps(result_raw["ground_truth"], indent=2), encoding="utf-8"
@@ -67,6 +81,17 @@ def main() -> None:
         "--resume",
         action="store_true",
         help="resume from an existing output/detections.csv (skip image analysis)",
+    )
+    ap.add_argument(
+        "--overlay",
+        action="store_true",
+        help="write tracking_overlay.<ext> (trajectory drawn on the input video)",
+    )
+    ap.add_argument(
+        "--overlay-format",
+        choices=["mp4", "avi", "gif", "png"],
+        default="mp4",
+        help="overlay output format (default: mp4)",
     )
     args = ap.parse_args()
 
@@ -120,7 +145,16 @@ def main() -> None:
             frames, gt = generate(cfg)
         result_raw = run(frames, cfg, gt, raw=True)
 
-    _write_outputs(result_raw, cfg, out, frames=frames)
+    if args.overlay and args.resume:
+        print("warning: --overlay is skipped in --resume mode (no input frames)", file=sys.stderr)
+    _write_outputs(
+        result_raw,
+        cfg,
+        out,
+        frames=frames,
+        overlay=args.overlay,
+        overlay_format=args.overlay_format,
+    )
     result = {k: v for k, v in result_raw.items() if k not in ("detections", "track", "ground_truth")}
     print(json.dumps({k: result[k] for k in ("n_frames", "n_detections", "n_tracks")}))
     print(f"quality_pass_rate: {result['quality']['pass_rate']}")

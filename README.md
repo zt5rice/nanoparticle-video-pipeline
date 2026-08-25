@@ -15,6 +15,7 @@ make smoke                  # end-to-end smoke test (40 frames, 1 molecule)
 make sample && make run     # write sample data and run the pipeline
 python scripts/run_pipeline.py --input video.tif --out output   # analyze a real video
 python scripts/run_pipeline.py --out output --resume            # rebuild from detections.csv
+python scripts/run_pipeline.py --input video.tif --out output --overlay  # + trajectory overlay video
 ```
 
 Each run also writes `output/tracking_report.html` — a self-contained tracking-QC
