@@ -30,8 +30,7 @@ def build_tracking_report_figure(
     xs, ys, angles, missing, interp = _series(track)
     present = ~missing
     fr = np.arange(len(xs), dtype=float)
-    # Track angles are stored in degrees; plot radians so the axis label is truthful.
-    angles_rad = np.deg2rad(angles)
+    # Track angles are stored in degrees; plot them as-is with a truthful axis label.
 
     fig = make_subplots(
         rows=2,
@@ -80,14 +79,14 @@ def build_tracking_report_figure(
 
     # 3. Unwrapped orientation vs frame.
     fig.add_trace(
-        go.Scatter(x=fr[present], y=angles_rad[present], name="angle_rad"), row=2, col=1
+        go.Scatter(x=fr[present], y=angles[present], name="angle_deg"), row=2, col=1
     )
     if np.any(interp):
         # Interpolated (gap-filled) angles are bridging estimates; mark them clearly.
         fig.add_trace(
             go.Scatter(
                 x=fr[interp],
-                y=angles_rad[interp],
+                y=angles[interp],
                 mode="markers",
                 name="interpolated angle",
                 marker={"color": "orange", "symbol": "x"},
@@ -117,7 +116,7 @@ def build_tracking_report_figure(
     fig.update_xaxes(title_text="frame", row=1, col=2)
     fig.update_yaxes(title_text="px", row=1, col=2)
     fig.update_xaxes(title_text="frame", row=2, col=1)
-    fig.update_yaxes(title_text="angle (rad)", row=2, col=1)
+    fig.update_yaxes(title_text="angle (deg)", row=2, col=1)
     fig.update_xaxes(title_text="lag (frames)", row=2, col=2)
     fig.update_yaxes(title_text="MSD (px^2)", row=2, col=2)
     return fig
