@@ -34,7 +34,7 @@ Services: API `:8000`, Airflow `:8080`, Prometheus `:9090`, Grafana `:3000`.
 
 **Tracking QC report** — an interactive HTML report is written to
 `output/tracking_report.html` after every run (trajectory overlaid on the first frame,
-x/y vs frame, unwrapped angle in rad vs frame, MSD vs lag). Static preview:
+x/y vs frame, unwrapped angle in deg vs frame, MSD vs lag). Static preview:
 
 ![Tracking QC report](docs/assets/tracking_qc_preview.png)
 
