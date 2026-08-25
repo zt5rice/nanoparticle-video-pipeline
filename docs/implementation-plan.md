@@ -248,6 +248,10 @@ MSD fit `R²≥0.7`, exactly-one-primary-object per frame (0 or >1 flagged). Out
   angle deg/rad), `config.yaml`, and (for synthetic input) `ground_truth.json` next to
   `result.json`; `--resume` rebuilds result/tracks from an existing `detections.csv`,
   skipping the expensive image-analysis stage.
+- Overlay video: `run_pipeline.py --overlay [--overlay-format mp4|avi|gif|png]` draws the
+  tracked trajectory/orientation onto the input video and writes
+  `output/tracking_overlay.<ext>` (mirrors the MATLAB `bdmovieSWNT` movie maker; skipped
+  in `--resume` mode, which has no input frames).
 - Airflow DAG `nanoparticle_video_pipeline`: `generate → preprocess → detect_track →
   features_validate → export`, `@daily`, `catchup=False`, LocalExecutor; writes
   `output/latest_result.json` (same schema as `result.json`).
