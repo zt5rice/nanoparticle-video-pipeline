@@ -102,6 +102,25 @@ def test_msd_parallel_perpendicular_pure_parallel():
     assert msd_par[0] > 0
 
 
+def test_msd_parallel_perpendicular_any_fixed_angle_pure_parallel():
+    """Fakhri 2010 SOM rotation: at ANY fixed rod angle a displacement along the
+    long axis must land entirely on the parallel component (perp ~ 0), not only
+    at axis-aligned angles. Guards against a y-up/y-down sign swap that would
+    mislabel parallel/perp for oblique rods."""
+    rng = np.random.default_rng(11)
+    n = 500
+    for theta_deg in (-60.0, -30.0, 30.0, 45.0, 60.0, 89.0):
+        th = np.deg2rad(theta_deg)
+        u = np.array([np.cos(th), np.sin(th)])  # rod long axis in image (y-down) coords
+        steps = rng.normal(0.0, 1.0, size=n)
+        pos = np.cumsum(np.c_[steps, steps] * u, axis=0)
+        _, msd_par, msd_perp = msd_parallel_perpendicular(
+            pos[:, 0], pos[:, 1], np.full(n, theta_deg), max_lag=80, n_lags=40
+        )
+        assert np.all(msd_perp < 1e-6), f"theta={theta_deg}: perp not ~0"
+        assert msd_par[0] > 0
+
+
 def test_msd_parallel_perpendicular_pure_perpendicular():
     """Rod fixed at 0 deg moving only along its short axis: par MSD ~ 0."""
     xs = np.zeros(200)

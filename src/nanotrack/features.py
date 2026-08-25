@@ -140,9 +140,13 @@ def msd_parallel_perpendicular(
         par_j  = ( cos(a)*dx + sin(a)*dy )^2      # along the rod long axis
         perp_j = ( -sin(a)*dx + cos(a)*dy )^2     # normal to the rod axis
 
-    (The author's MATLAB angle file uses a flipped y-up frame; expressed in our
-    image coordinates (y down) its rotation is exactly the parallel/normal
-    decomposition above.)
+    This is the SOM rotation matrix ``R_Θτ = [[cosΘ, sinΘ], [-sinΘ, cosΘ]]``
+    applied in image (y-down) coordinates, where the ellipse orientation from
+    :mod:`nanotrack.detection` is the major-axis direction in the numeric
+    (x, y) plane. (The MATLAB code uses the transpose matrix because it treats
+    the same regionprops angle as a y-up angle; the two conventions are
+    equivalent under θ -> -θ and yield the same physical decomposition —
+    verified by the fixed-angle pure-long-axis-translation test.)
 
     Because the frame is re-averaged per interval, short-time lags recover the
     intrinsic rod mobility (``msd_par ~ 2*D_a*t``, ``msd_perp ~ 2*D_b*t``),
