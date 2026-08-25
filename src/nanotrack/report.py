@@ -22,14 +22,16 @@ def _series(track: dict) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray
     return xs, ys, angles, missing, interp
 
 
-def build_tracking_report(
+def build_tracking_report_figure(
     result: dict, cfg: PipelineConfig, frames: np.ndarray | None = None
-) -> str:
-    """Build a self-contained HTML page: trajectory, x/y, angle, MSD."""
+) -> go.Figure:
+    """Build the 2x2 QC figure (trajectory, x/y, angle in rad, MSD)."""
     track = result.get("track", {})
     xs, ys, angles, missing, interp = _series(track)
     present = ~missing
     fr = np.arange(len(xs), dtype=float)
+    # Track angles are stored in degrees; plot radians so the axis label is truthful.
+    angles_rad = np.deg2rad(angles)
 
     fig = make_subplots(
         rows=2,
@@ -77,7 +79,22 @@ def build_tracking_report(
     fig.add_trace(go.Scatter(x=fr[present], y=ys[present], name="y_px"), row=1, col=2)
 
     # 3. Unwrapped orientation vs frame.
-    fig.add_trace(go.Scatter(x=fr[present], y=angles[present], name="angle_rad"), row=2, col=1)
+    fig.add_trace(
+        go.Scatter(x=fr[present], y=angles_rad[present], name="angle_rad"), row=2, col=1
+    )
+    if np.any(interp):
+        # Interpolated (gap-filled) angles are bridging estimates; mark them clearly.
+        fig.add_trace(
+            go.Scatter(
+                x=fr[interp],
+                y=angles_rad[interp],
+                mode="markers",
+                name="interpolated angle",
+                marker={"color": "orange", "symbol": "x"},
+            ),
+            row=2,
+            col=1,
+        )
 
     # 4. MSD with log-spaced lags.
     if present.sum() >= 3:
@@ -103,6 +120,14 @@ def build_tracking_report(
     fig.update_yaxes(title_text="angle (rad)", row=2, col=1)
     fig.update_xaxes(title_text="lag (frames)", row=2, col=2)
     fig.update_yaxes(title_text="MSD (px^2)", row=2, col=2)
+    return fig
+
+
+def build_tracking_report(
+    result: dict, cfg: PipelineConfig, frames: np.ndarray | None = None
+) -> str:
+    """Build a self-contained HTML page: trajectory, x/y, angle, MSD."""
+    fig = build_tracking_report_figure(result, cfg, frames)
     return fig.to_html(full_html=True, include_plotlyjs=True)
 
 
