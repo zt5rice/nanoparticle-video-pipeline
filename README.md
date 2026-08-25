@@ -92,14 +92,39 @@ Each run also writes `output/tracking_report.html` — a self-contained tracking
 dashboard (trajectory, x/y vs frame, angle vs frame, MSD). With the API up, open
 `http://localhost:8000/tracking`.
 
-### Docker stack (local)
+### Full stack (Airflow · Prometheus · Grafana)
+
+Bring up the whole stack — API + Airflow + Postgres + Prometheus + Grafana:
 
 ```bash
 mkdir -p output && chmod -R 777 output   # Airflow runs as a non-root user
-docker compose up --build
+docker compose up --build -d
+docker compose ps
 ```
 
-Services: API `:8000`, Airflow `:8080`, Prometheus `:9090`, Grafana `:3000`.
+Then walk through the four services:
+
+1. **API** — `http://localhost:8000/health` (FastAPI; interactive docs at `/docs`).
+2. **Airflow** — `http://localhost:8080` (login `admin` / `admin`): trigger the
+   `nanoparticle_video_pipeline` DAG (`generate → preprocess → detect_track →
+   features_validate → export`); the run writes `output/latest_result.json`.
+3. **Prometheus** — `http://localhost:9090/targets` shows the `nanotrack-api` job
+   (`health = up`); raw metrics at `http://localhost:8000/metrics`.
+4. **Grafana** — `http://localhost:3000` (login `admin` / `admin`): open the
+   provisioned **nanotrack-pipeline** dashboard (frames analyzed, errors, runtime p95).
+
+Minimal end-to-end smoke:
+
+```bash
+curl -sf http://localhost:8000/health
+curl -sf -X POST http://localhost:8000/analyze \
+  -H 'Content-Type: application/json' -d '{"n_frames":60,"backend":"numpy"}'
+docker compose exec -T airflow-webserver airflow dags test \
+  nanoparticle_video_pipeline $(date +%Y-%m-%d) || true
+test -f output/latest_result.json
+```
+
+> Credentials above (`admin`/`admin`, `airflow`/`airflow`) are **local dev defaults only**.
 
 ## Example outputs
 
@@ -120,15 +145,14 @@ axes, and a run summary). Static preview:
 
 ![Tracking QC report](docs/assets/tracking_qc_preview.png)
 
-**Tracking QC report — 10,000-frame real video (parallel/perpendicular MSD trend)** —
-the full 3×2 QC report from a 10,000-frame single-molecule SWCNT video
-(`--max-lag 5000`). The MSD panel shows the Fakhri et al. (Science 2010)
-parallel/perpendicular MSD regimes: anisotropic short-time `Δs² >> Δn²`, the
-super-linear crossover `Δn² ~ D∥·D_r·t²`, and the onset of isotropic convergence
-beyond `τ_r = 1/(2D_r)`. Demo video courtesy of Fakhri et al., Science 2010 —
-please cite the source paper (see [Citation](#citation)):
+**Tracking QC report — 10,000-frame synthetic video (parallel/perpendicular MSD trend)** —
+the full 3×2 QC report from a synthetic 10,000-frame single-molecule rod video with
+anisotropic body-frame diffusion (`D_∥ >> D_⊥`) plus rotational diffusion (`--max-lag 5000`).
+The MSD panel shows the Fakhri et al. (Science 2010) parallel/perpendicular MSD regimes:
+anisotropic short-time `Δs² >> Δn²`, the super-linear crossover `Δn² ~ D∥·D_r·t²`, and
+isotropic convergence beyond `τ_r = 1/(2D_r)`:
 
-![Tracking QC report — 10k-frame par/perp MSD trend](docs/assets/tracking_report_nt3_full.png)
+![Tracking QC report — 10k-frame par/perp MSD trend](docs/assets/tracking_report_10k_preview.png)
 
 **Tracking overlay video** — `--overlay` draws the tracked trajectory and orientation
 onto the input video (`output/tracking_overlay.mp4`, or `.gif` / `.png` via
@@ -145,12 +169,21 @@ If you use this tool in your work, please cite the methodology paper:
 > randomly packed mono-sized colloids*, Soft Matter **2022**.
 > DOI: [10.1039/D2SM00305H](https://doi.org/10.1039/D2SM00305H)
 
-The 10,000-frame demo video in the example outputs is from:
+The parallel/perpendicular MSD method follows:
 
 > N. Fakhri, F. C. MacKintosh, B. Lounis, L. Cognet, M. Pasquali,
 > *Brownian Motion of Stiff Filaments in a Crowded Environment*, Science **2010**,
 > 330 (6012), 1804–1807.
 > DOI: [10.1126/science.1197321](https://doi.org/10.1126/science.1197321)
+
+## Timeline & provenance
+
+- **2020–2024 — research & methodology**: the tracking methodology (MATLAB) and the
+  underlying experiments/publications — J. Phys. Chem. B **2020** (BNNT), Soft Matter
+  **2022** (SWCNT reptation), ACS Nano **2024** (h-BN nanosheets).
+- **2026 — engineering reimplementation**: this repository re-engineers that research
+  methodology into a production-grade data-infrastructure stack (Python package, CLI,
+  FastAPI, Airflow, Docker Compose, Prometheus/Grafana, GitHub Actions CI/CD).
 
 ## Layout
 
