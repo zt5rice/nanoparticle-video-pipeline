@@ -79,6 +79,16 @@ onto the input video (`output/tracking_overlay.mp4`, or `.gif` / `.png` via
 
 ![Tracking overlay on a single-molecule video](docs/assets/tracking_overlay.gif)
 
+**Observability & orchestration stack** (simulated previews with sample data; see the
+real stack via `docker compose up` — Airflow `:8080`, Prometheus `:9090`, Grafana
+`:3000`):
+
+![Grafana nanotrack-pipeline dashboard](docs/assets/grafana_preview.png)
+
+![Apache Airflow DAG](docs/assets/airflow_preview.png)
+
+![Prometheus targets & graph](docs/assets/prometheus_preview.png)
+
 ## Citation
 
 If you use this tool in your work, please cite the methodology paper:
