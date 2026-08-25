@@ -22,6 +22,22 @@ def _series(track: dict) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray
     return xs, ys, angles, missing, interp
 
 
+def _panel_max_lag(cfg: PipelineConfig, n: int) -> int:
+    """Max lag used by the report MSD/MSAD/par-perp panels.
+
+    Honors an explicit config ``max_lag`` (e.g. a few thousand frames, to reveal
+    the Fakhri 2010 Fig. 3B regimes: anisotropic -> perp super-linear ->
+    isotropic convergence) but never exceeds ``n // 2``, where the internal
+    average would have fewer than two displacement samples. Without an explicit
+    value it falls back to the historical 50-frame cap.
+    """
+    if n < 2:
+        return 1
+    if cfg.max_lag is None:
+        return min(50, max(1, n // 2))
+    return max(1, min(int(cfg.max_lag), n // 2))
+
+
 def build_tracking_report_figure(
     result: dict, cfg: PipelineConfig, frames: np.ndarray | None = None
 ) -> go.Figure:
@@ -110,7 +126,10 @@ def build_tracking_report_figure(
     # converge at long times once the orientation memory is lost.
     if present.sum() >= 3:
         lags, msd = msd_curve(
-            xs[present], ys[present], max_lag=min(50, int(present.sum()) // 2), n_lags=20
+            xs[present],
+            ys[present],
+            max_lag=_panel_max_lag(cfg, int(present.sum())),
+            n_lags=cfg.msd_n_lags,
         )
         if len(lags) > 1:
             fig.add_trace(
@@ -129,8 +148,8 @@ def build_tracking_report_figure(
             xs[present],
             ys[present],
             angles[present],
-            max_lag=min(50, int(present.sum()) // 2),
-            n_lags=20,
+            max_lag=_panel_max_lag(cfg, int(present.sum())),
+            n_lags=cfg.msd_n_lags,
         )
         if len(lags_p) > 1:
             fig.add_trace(
@@ -161,7 +180,9 @@ def build_tracking_report_figure(
     # 5. MSAD (mean squared angular displacement) with log-spaced lags, log-log axes.
     if present.sum() >= 3:
         ang_present = angles[present]
-        lags_a, msad = msad_curve(ang_present, max_lag=min(50, int(present.sum()) // 2), n_lags=20)
+        lags_a, msad = msad_curve(
+            ang_present, max_lag=_panel_max_lag(cfg, int(present.sum())), n_lags=cfg.msd_n_lags
+        )
         if len(lags_a) > 1:
             fig.add_trace(
                 go.Scatter(x=lags_a, y=msad, mode="markers+lines", name="MSAD"),
