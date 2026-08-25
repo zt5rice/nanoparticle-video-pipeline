@@ -204,15 +204,19 @@ rotated-parabola bending angle (mean/std in v1; Fourier modes optional, not in v
 acceptance). Orientation is unwrapped mod 180° during tracking (vertical rods do not
 fake-jump at ±90°), and MSAD wraps angular deltas to [-90°, 90°).
 
-**Parallel / perpendicular (rod-frame) MSD** follows Han et al. (Science 2006):
-each single-step displacement is rotated into the body frame using the step's
-midpoint orientation `θ_n = (θ_n + θ_{n+1})/2`, then cumulatively summed into a
-co-moving body-frame trajectory `(x̃, ỹ)`. The component MSDs
-`⟨[Δx̃(τ)]²⟩ ≈ 2D_a·τ·dt` and `⟨[Δỹ(τ)]²⟩ ≈ 2D_b·τ·dt` are internally averaged over
-all starting times at the same log-spaced lags (`msd_parallel_perpendicular` /
-`msd_parallel_perpendicular_full`); `D_parallel = slope/2/dt` and
-`D_perpendicular = slope/2/dt`. Because the rotation is orthogonal,
-`MSD_total = MSD_parallel + MSD_perpendicular` exactly.
+**Parallel / perpendicular MSD** follows the author's MATLAB analysis
+(`mfile092019`: `MSDparaperpNEWshortgbn_fcn.m` /
+`GetMSDparaperpshortgbnUniTime2.m`): for each lag τ and starting frame j, the
+lab-frame displacement `Δr = r(j+τ) − r(j)` is rotated into the rod frame using
+the **average orientation over the interval** `[j, j+τ]` (unwrapped), then
+squared and internally averaged:
+`MSD_par(τ)=⟨(cos a·Δx − sin a·Δy)²⟩`, `MSD_perp(τ)=⟨(sin a·Δx + cos a·Δy)²⟩`,
+`a = mean_{k∈[j,j+τ]} θ_k`. Short-time lags recover the intrinsic rod mobility
+(`≈2D_a·τ·dt`, `≈2D_b·τ·dt`); at times `≫ τ_rot` the orientation memory is lost
+and both components converge to the isotropic total diffusion
+(`MSD_par ≈ MSD_perp ≈ (D_a+D_b)·τ·dt`). `D_parallel = slope/2/dt`,
+`D_perpendicular = slope/2/dt` from the short-lag linear fit. Reference
+context: Han et al., Science 2006 (rotational coupling / crossover physics).
 
 ### `validation.report(track, cfg) -> DataQualityReport`
 

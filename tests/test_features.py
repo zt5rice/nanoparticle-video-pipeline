@@ -158,6 +158,30 @@ def test_msd_parallel_perpendicular_quick_matches_full():
     np.testing.assert_allclose(perp_q, perp_f[idx], rtol=1e-12)
 
 
+def test_msd_parallel_perpendicular_long_time_converges():
+    """An anisotropic rod with rotational diffusion: the parallel/perpendicular
+    ratio starts at ~Da/Db (short time) and converges toward 1 at long times,
+    once the orientation memory is lost (author's MATLAB method behavior)."""
+    rng = np.random.default_rng(11)
+    n = 20000
+    Da, Db, Dr = 2.0, 0.5, 0.02  # tau_rot = 1/(2*Dr) = 25 steps
+    dth = np.sqrt(2 * Dr) * rng.normal(size=n)
+    theta = np.cumsum(dth)
+    dxb = np.sqrt(2 * Da) * rng.normal(size=n)
+    dyb = np.sqrt(2 * Db) * rng.normal(size=n)
+    c, s = np.cos(theta), np.sin(theta)
+    x = np.cumsum(c * dxb - s * dyb)
+    y = np.cumsum(s * dxb + c * dyb)
+    lags, msd_par, msd_perp = msd_parallel_perpendicular(
+        x, y, np.degrees(theta), max_lag=2000, n_lags=30
+    )
+    ratio = msd_par / msd_perp
+    assert ratio[0] > 2.5  # short-time anisotropic (~Da/Db = 4)
+    # Long time: converges toward 1 (isotropic); allow finite-sample noise.
+    assert abs(np.log(ratio[-1])) < 0.6
+    assert lags[-1] >= 2000
+
+
 def test_component_diffusion_coefficient():
     """1D body-frame MSD = 2*lag (dt=1) -> D = slope/2 = 1 px^2/s."""
     lags = np.arange(1, 21, dtype=float)
