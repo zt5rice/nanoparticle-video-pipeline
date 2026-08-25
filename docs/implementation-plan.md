@@ -58,7 +58,8 @@ analysis → data-quality validation → export.
 | `10575298.pdf` | h-BN nanosheets / graphene 2D diffusion | 2D translation diffusion, Kramers theory context; ~18 fps imaging |
 | `SM_d2sm00305h_zt.pdf` | SWCNT reptation in packed colloids (Soft Matter) | Ellipse-fit COM/orientation; TA-MSD; bending angle via rotated-parabola fit; Gittes backbone protocol |
 | `jc1204923.pdf` | Gittes et al. 1993, flexural rigidity from thermal shape fluctuations | Backbone extraction, arc-length tangent angle, Fourier-mode / parabola bending analysis |
-| `Science_2006.pdf` | Han et al. 2006, Brownian motion of an ellipsoid (Science) | Rod-frame MSD decomposition: parallel `⟨Δx̃²⟩=2D_a·t` and perpendicular `⟨Δỹ²⟩=2D_b·t` via co-moving body frame |
+| `Science_2006.pdf` | Han et al. 2006, Brownian motion of an ellipsoid (Science) | Context for rod-frame short-time anisotropy (`⟨Δx̃²⟩=2D_a·t`, `⟨Δỹ²⟩=2D_b·t`); the implemented parallel/perp MSD follows Fakhri 2010, not Han 2006 |
+| `Science_2010.pdf` | Fakhri et al. 2010, Brownian motion of stiff filaments in a crowded environment (Science); **PDF not yet in `ref/` — user to add when access available** | **Source of the parallel/perp MSD method**: COM displacement decomposed into components parallel/perpendicular to the running time-averaged reptation tube (SOM appendix); author's MATLAB `MATLAB code` implements the same recipe |
 | `SWNTs trackingV3.zip` | **Canonical** MATLAB code | Direct port source (see mapping below) |
 | `SWNTs tracking.rar` | Older development snapshot | Provenance only; no algorithm change (diff summary in `ref/README.md`) |
 
@@ -82,6 +83,13 @@ analysis → data-quality validation → export.
 5. Y. Han, A. M. Alsayed, M. Nobili, J. Zhang, T. C. Lubensky, A. G. Yodh, *Brownian Motion
    of an Ellipsoid*, Science **2006**, 314 (5799), 626–630. DOI:
    [10.1126/science.1130146](https://doi.org/10.1126/science.1130146).
+6. N. Fakhri, F. C. MacKintosh, B. Lounis, L. Cognet, M. Pasquali, *Brownian Motion of Stiff
+   Filaments in a Crowded Environment*, Science **2010**, 330 (6012), 1804–1807. DOI:
+   [10.1126/science.1197321](https://doi.org/10.1126/science.1197321). The supporting online
+   material (`fakhri-som.pdf`, appendix) gives the parallel/perpendicular MSD decomposition:
+   the center-of-mass displacement is split into components parallel and perpendicular to the
+   running time-averaged reptation tube; this is the basis of `msd_parallel_perpendicular` and
+   of the author's MATLAB analysis (`MATLAB code`).
 
 ### Key parameters (from `main.m`, V3)
 

@@ -2,12 +2,15 @@
 MSD, diffusion coefficients, and shape-fluctuation statistics (Gittes-style
 bending angle is Phase 2+; v1 reports length/angle/eccentricity statistics).
 
-Parallel/perpendicular MSD follows the author's MATLAB analysis
-(MATLAB code: MSDparaperpNEWshortgbn_fcn.m / GetMSDparaperpshortgbnUniTime2.m):
-each lag-tau lab-frame displacement is rotated into the rod frame by the
-interval-averaged orientation, so short-time lags recover the intrinsic
-anisotropy (2 D_a t / 2 D_b t) and long-time lags converge to isotropic
-diffusion once the orientation memory is lost.
+Parallel/perpendicular MSD follows Fakhri et al., Science 2010 (DOI
+10.1126/science.1197321, SOM appendix) — the center-of-mass displacement is
+decomposed into components parallel and perpendicular to the *running
+time-averaged* reptation tube — which is exactly what the author's MATLAB
+analysis implements (MATLAB code: MSDparaperpNEWshortgbn_fcn.m /
+GetMSDparaperpshortgbnUniTime2.m): each lag-tau lab-frame displacement is
+rotated into the rod frame by the interval-averaged orientation, so short-time
+lags recover the intrinsic anisotropy (2 D_a t / 2 D_b t) and long-time lags
+converge to isotropic diffusion once the orientation memory is lost.
 """
 
 from __future__ import annotations
@@ -124,11 +127,14 @@ def msd_parallel_perpendicular(
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Parallel/perpendicular MSD via interval-averaged rod orientation.
 
-    Method follows the author's MATLAB analysis (MATLAB code):
-    for each lag ``tau`` and starting frame ``j``, the lab-frame displacement
-    ``dr = r(j+tau) - r(j)`` is rotated into the rod frame using the *average*
-    orientation over the interval ``[j, j+tau]`` (unwrapped, in rad), then each
-    component is squared and internally averaged over all starting times:
+    Method follows Fakhri et al., Science 2010 (SOM appendix): the COM
+    displacement is decomposed into components parallel and perpendicular to
+    the running time-averaged reptation tube. The author's MATLAB analysis
+    (MATLAB code) implements the same recipe: for each lag ``tau`` and starting
+    frame ``j``, the lab-frame displacement ``dr = r(j+tau) - r(j)`` is rotated
+    into the rod frame using the *average* orientation over the interval
+    ``[j, j+tau]`` (unwrapped, in rad), then each component is squared and
+    internally averaged over all starting times:
 
         a = mean_{k in [j, j+tau]} theta_k
         par_j  = ( cos(a)*dx + sin(a)*dy )^2      # along the rod long axis
@@ -263,7 +269,9 @@ def summarize(track: dict, cfg: PipelineConfig) -> dict:
     lags_a, msad = msad_curve(angles, cfg.max_lag, n_lags=cfg.msd_n_lags)
     dr_rad2, _msad_r2 = rotational_diffusion_coefficient(lags_a, msad, cfg.dt, cfg.msd_fit_frac)
 
-    # Rod-frame (parallel/perpendicular) MSD, Han et al. Science 2006.
+    # Rod-frame (parallel/perpendicular) MSD, Fakhri et al. Science 2010
+    # (SOM appendix; running time-averaged reptation tube), matching the
+    # author's MATLAB analysis (MATLAB code).
     lags_p, msd_par, msd_perp = msd_parallel_perpendicular(
         xs, ys, angles, cfg.max_lag, n_lags=cfg.msd_n_lags
     )
