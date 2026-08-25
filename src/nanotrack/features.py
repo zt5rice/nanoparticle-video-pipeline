@@ -1,6 +1,11 @@
-"""Track features: MSD/MSAD with internal averaging, diffusion coefficients, and
-shape-fluctuation statistics (Gittes-style bending angle is Phase 2+; v1 reports
-length/angle/eccentricity statistics)."""
+"""Track features: MSD/MSAD with internal averaging, parallel/perpendicular
+(rod-frame) MSD, diffusion coefficients, and shape-fluctuation statistics
+(Gittes-style bending angle is Phase 2+; v1 reports length/angle/eccentricity
+statistics).
+
+Rod-frame MSD decomposition follows Han, Alsayed, Nobili, Zhang, Lubensky &
+Yodh, "Brownian Motion of an Ellipsoid", Science 314, 626 (2006).
+"""
 
 from __future__ import annotations
 
@@ -106,6 +111,67 @@ def msad_curve_full(
     return msad_curve(angles_deg, max_lag=max_lag, n_lags=0, log_spaced=False)
 
 
+def msd_parallel_perpendicular(
+    xs: np.ndarray,
+    ys: np.ndarray,
+    angles_deg: np.ndarray,
+    max_lag: int | None = None,
+    n_lags: int = 40,
+    log_spaced: bool = True,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Rod-frame MSD decomposed into parallel and perpendicular components.
+
+    Follows Han et al. (Science 2006): each single-step lab-frame displacement is
+    rotated into the body frame using the step's midpoint orientation
+    ``theta_n = (theta_n + theta_{n+1}) / 2``, then cumulatively summed to build
+    the co-moving body-frame trajectory ``(x~, y~)``. The MSD of each component
+    is internally averaged over all starting times:
+
+        msd_par(lag)  = <[x~(t+lag) - x~(t)]^2>  ~ 2 * D_parallel  * lag * dt
+        msd_perp(lag) = <[y~(t+lag) - y~(t)]^2>  ~ 2 * D_perpendicular * lag * dt
+
+    Same lag-sampling options as :func:`msd_curve` (log-spaced for long videos).
+    """
+    n = len(xs)
+    if max_lag is None:
+        max_lag = n - 1
+    max_lag = int(min(max_lag, n - 1))
+    if max_lag < 1 or n < 2:
+        return np.array([], dtype=float), np.array([], dtype=float), np.array([], dtype=float)
+
+    # Lab-frame step displacements.
+    dx = np.diff(xs)
+    dy = np.diff(ys)
+    # Orientation is periodic with 180 deg; unwrap so the body frame is continuous.
+    ang = np.unwrap(np.deg2rad(angles_deg), period=np.pi)
+    mid = 0.5 * (ang[:-1] + ang[1:])  # midpoint orientation of each step (rad)
+    cos_m, sin_m = np.cos(mid), np.sin(mid)
+
+    # Rotate each step into the body frame and integrate (co-moving frame).
+    xb = np.concatenate([[0.0], np.cumsum(cos_m * dx + sin_m * dy)])
+    yb = np.concatenate([[0.0], np.cumsum(-sin_m * dx + cos_m * dy)])
+
+    lags = _log_spaced_lags(max_lag, n_lags) if log_spaced else np.arange(1, max_lag + 1)
+    msd_par = np.empty(len(lags), dtype=float)
+    msd_perp = np.empty(len(lags), dtype=float)
+    for k, lag in enumerate(lags):
+        msd_par[k] = float(np.mean((xb[lag:] - xb[:-lag]) ** 2))
+        msd_perp[k] = float(np.mean((yb[lag:] - yb[:-lag]) ** 2))
+    return lags.astype(float), msd_par, msd_perp
+
+
+def msd_parallel_perpendicular_full(
+    xs: np.ndarray,
+    ys: np.ndarray,
+    angles_deg: np.ndarray,
+    max_lag: int | None = None,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Exhaustive rod-frame MSD over every lag (test/correctness helper)."""
+    return msd_parallel_perpendicular(
+        xs, ys, angles_deg, max_lag=max_lag, n_lags=0, log_spaced=False
+    )
+
+
 def _linear_fit(y: np.ndarray, x: np.ndarray) -> tuple[float, float, float]:
     if len(x) < 2:
         return 0.0, 0.0, 0.0
@@ -141,6 +207,22 @@ def rotational_diffusion_coefficient(
     return dr_deg2_per_s * (np.pi / 180.0) ** 2, r2
 
 
+def component_diffusion_coefficient(
+    lags: np.ndarray, msd: np.ndarray, dt: float, fit_frac: float = 0.25
+) -> tuple[float, float]:
+    """D (px^2/s) from a 1D body-frame component (parallel or perpendicular).
+
+    A single body-frame component follows ``MSD(lag) ~ 2*D*lag*dt``, so
+    ``D = slope / (2*dt)`` — unlike the 2D lab-frame :func:`diffusion_coefficient`
+    where ``Dt = slope / (4*dt)``.
+    """
+    if len(lags) < 2 or dt <= 0:
+        return 0.0, 0.0
+    nfit = max(2, round(len(lags) * fit_frac))
+    slope, _, r2 = _linear_fit(msd[:nfit], lags[:nfit])
+    return slope / 2.0 / dt, r2
+
+
 def summarize(track: dict, cfg: PipelineConfig) -> dict:
     """Return the per-track summary dict (spec §5)."""
     xs, ys = _positions(track)
@@ -154,6 +236,9 @@ def summarize(track: dict, cfg: PipelineConfig) -> dict:
             "diffusion_coefficient_px2_per_s": None,
             "rotational_diffusion_coefficient_rad2_per_s": None,
             "msd_fit_r2": None,
+            "diffusion_coefficient_parallel_px2_per_s": None,
+            "diffusion_coefficient_perpendicular_px2_per_s": None,
+            "diffusion_anisotropy_ratio": None,
         }
 
     lengths = np.array([f["length"] for f in track["frames"] if f.get("x_px") is not None], dtype=float)
@@ -165,6 +250,16 @@ def summarize(track: dict, cfg: PipelineConfig) -> dict:
     lags_a, msad = msad_curve(angles, cfg.max_lag, n_lags=cfg.msd_n_lags)
     dr_rad2, _msad_r2 = rotational_diffusion_coefficient(lags_a, msad, cfg.dt, cfg.msd_fit_frac)
 
+    # Rod-frame (parallel/perpendicular) MSD, Han et al. Science 2006.
+    lags_p, msd_par, msd_perp = msd_parallel_perpendicular(
+        xs, ys, angles, cfg.max_lag, n_lags=cfg.msd_n_lags
+    )
+    d_par, _r2_par = component_diffusion_coefficient(lags_p, msd_par, cfg.dt, cfg.msd_fit_frac)
+    d_perp, _r2_perp = component_diffusion_coefficient(
+        lags_p, msd_perp, cfg.dt, cfg.msd_fit_frac
+    )
+    anisotropy = float(d_par / d_perp) if d_perp > 0 else None
+
     return {
         "track_id": 1,
         "length_mean": float(np.mean(lengths)) if len(lengths) else None,
@@ -174,4 +269,7 @@ def summarize(track: dict, cfg: PipelineConfig) -> dict:
         "diffusion_coefficient_px2_per_s": float(dt_px2) if len(lags) >= 2 else None,
         "rotational_diffusion_coefficient_rad2_per_s": float(dr_rad2) if len(lags_a) >= 2 else None,
         "msd_fit_r2": float(msd_r2) if len(lags) >= 2 else None,
+        "diffusion_coefficient_parallel_px2_per_s": float(d_par) if len(lags_p) >= 2 else None,
+        "diffusion_coefficient_perpendicular_px2_per_s": float(d_perp) if len(lags_p) >= 2 else None,
+        "diffusion_anisotropy_ratio": anisotropy if len(lags_p) >= 2 else None,
     }

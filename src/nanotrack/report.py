@@ -9,7 +9,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 from .config import PipelineConfig
-from .features import msad_curve, msd_curve
+from .features import msad_curve, msd_curve, msd_parallel_perpendicular
 
 
 def _series(track: dict) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
@@ -25,7 +25,8 @@ def _series(track: dict) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray
 def build_tracking_report_figure(
     result: dict, cfg: PipelineConfig, frames: np.ndarray | None = None
 ) -> go.Figure:
-    """Build the 3x2 QC figure (trajectory, x/y, angle, MSD/MSAD log-log, summary)."""
+    """Build the 4x2 QC figure (trajectory, x/y, angle, MSD/MSAD, rod-frame
+    parallel/perpendicular MSD, summary)."""
     track = result.get("track", {})
     xs, ys, angles, missing, interp = _series(track)
     present = ~missing
@@ -33,7 +34,7 @@ def build_tracking_report_figure(
     # Track angles are stored in degrees; plot them as-is with a truthful axis label.
 
     fig = make_subplots(
-        rows=3,
+        rows=4,
         cols=2,
         subplot_titles=(
             "Trajectory (px)",
@@ -42,6 +43,8 @@ def build_tracking_report_figure(
             "MSD vs lag (log10)",
             "MSAD vs lag (log10)",
             "Summary",
+            "MSD parallel / perpendicular vs lag (log10)",
+            "",
         ),
     )
 
@@ -123,7 +126,30 @@ def build_tracking_report_figure(
                 col=1,
             )
 
-    # 6. Summary text panel.
+    # 6. Rod-frame MSD (parallel / perpendicular to the long axis), Han et al.
+    # Science 2006: per-step displacement rotated into the body frame using the
+    # midpoint orientation, cumulatively summed, then MSD of each component.
+    if present.sum() >= 3:
+        lags_p, msd_par, msd_perp = msd_parallel_perpendicular(
+            xs[present],
+            ys[present],
+            angles[present],
+            max_lag=min(50, int(present.sum()) // 2),
+            n_lags=20,
+        )
+        if len(lags_p) > 1:
+            fig.add_trace(
+                go.Scatter(x=lags_p, y=msd_par, mode="markers+lines", name="MSD parallel"),
+                row=4,
+                col=1,
+            )
+            fig.add_trace(
+                go.Scatter(x=lags_p, y=msd_perp, mode="markers+lines", name="MSD perpendicular"),
+                row=4,
+                col=1,
+            )
+
+    # 7. Summary text panel.
     s = result.get("summary", {}) or {}
     q = result.get("quality", {}) or {}
 
@@ -139,7 +165,10 @@ def build_tracking_report_figure(
         f"eccentricity_mean: {_fmt(s.get('eccentricity_mean'), '%.3f')}<br>"
         f"Dt: {_fmt(s.get('diffusion_coefficient_px2_per_s'), '%.3f px²/s')}<br>"
         f"Dr: {_fmt(s.get('rotational_diffusion_coefficient_rad2_per_s'), '%.5f rad²/s')}<br>"
-        f"MSD fit R²: {_fmt(s.get('msd_fit_r2'), '%.3f')}"
+        f"MSD fit R²: {_fmt(s.get('msd_fit_r2'), '%.3f')}<br>"
+        f"D_parallel: {_fmt(s.get('diffusion_coefficient_parallel_px2_per_s'), '%.3f px²/s')}<br>"
+        f"D_perpendicular: {_fmt(s.get('diffusion_coefficient_perpendicular_px2_per_s'), '%.3f px²/s')}<br>"
+        f"anisotropy D_par/D_perp: {_fmt(s.get('diffusion_anisotropy_ratio'), '%.2f')}"
     )
     fig.add_annotation(
         xref="x6 domain",
@@ -159,7 +188,7 @@ def build_tracking_report_figure(
         f"nanotrack tracking QC — frames={len(xs)} tracks={result.get('n_tracks')} "
         f"pass_rate={quality.get('pass_rate')}"
     )
-    fig.update_layout(title=title, height=1100, showlegend=True)
+    fig.update_layout(title=title, height=1350, showlegend=True)
     fig.update_xaxes(title_text="x (px)", row=1, col=1)
     fig.update_yaxes(title_text="y (px)", row=1, col=1, scaleanchor="x")
     fig.update_xaxes(title_text="frame", row=1, col=2)
@@ -170,15 +199,17 @@ def build_tracking_report_figure(
     fig.update_yaxes(title_text="MSD (px^2)", row=2, col=2)
     fig.update_xaxes(title_text="lag (frames)", row=3, col=1, type="log")
     fig.update_yaxes(title_text="MSAD (rad^2)", row=3, col=1, type="log")
-    fig.update_xaxes(visible=False, row=3, col=2)
-    fig.update_yaxes(visible=False, row=3, col=2)
+    fig.update_xaxes(title_text="lag (frames)", row=4, col=1, type="log")
+    fig.update_yaxes(title_text="MSD (px^2)", row=4, col=1, type="log")
+    fig.update_xaxes(visible=False, row=4, col=2)
+    fig.update_yaxes(visible=False, row=4, col=2)
     return fig
 
 
 def build_tracking_report(
     result: dict, cfg: PipelineConfig, frames: np.ndarray | None = None
 ) -> str:
-    """Build a self-contained HTML page: trajectory, x/y, angle, MSD."""
+    """Build a self-contained HTML page: trajectory, x/y, angle, MSD/MSAD, rod-frame MSD."""
     fig = build_tracking_report_figure(result, cfg, frames)
     return fig.to_html(full_html=True, include_plotlyjs=True)
 
