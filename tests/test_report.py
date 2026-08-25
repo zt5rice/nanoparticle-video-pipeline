@@ -36,8 +36,9 @@ def test_report_html_contains_sections(tmp_path):
         "MSD (px^2)", "MSAD (rad^2)",
     ):
         assert label in html
-    # Log-log (base 10) axes are enabled for the MSD/MSAD panels.
-    assert '"type":"log"' in html
+    # Log-log (base 10) axes are enabled for both MSD and MSAD panels
+    # (x + y for each -> at least 4 log axes).
+    assert html.count('"type":"log"') >= 4
 
     path = write_tracking_report(result, cfg, tmp_path / "tracking_report.html", frames)
     assert path.exists()
