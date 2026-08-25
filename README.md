@@ -1,5 +1,7 @@
 # nanotrack
 
+[![CI](https://github.com/zt5rice/nanoparticle-video-pipeline/actions/workflows/ci.yml/badge.svg)](https://github.com/zt5rice/nanoparticle-video-pipeline/actions)
+
 Single-molecule nanoparticle video tracking pipeline (SPT), reimplemented from the
 author's MATLAB methodology (see `docs/implementation-plan.md` for the decision-complete
 spec).
