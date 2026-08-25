@@ -7,9 +7,9 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import numpy as np
+from airflow import DAG
 from airflow.operators.python import PythonOperator
 
-from airflow import DAG
 from nanotrack.config import PipelineConfig
 from nanotrack.export import detections_to_rows, read_detections_rows, write_csv
 from nanotrack.pipeline import run, run_from_detections
@@ -60,8 +60,10 @@ def _features_validate() -> dict:
     cfg = PipelineConfig(n_frames=len(blobs), seed=0, backend="numpy")
     result = run_from_detections(blobs, cfg, raw=True)
     (INTER / "result.json").write_text(
-        json.dumps({k: v for k, v in result.items() if k not in ("detections", "track")}),
-        indent=2,
+        json.dumps(
+            {k: v for k, v in result.items() if k not in ("detections", "track")},
+            indent=2,
+        ),
         encoding="utf-8",
     )
     return {"pass_rate": result["quality"]["pass_rate"]}
