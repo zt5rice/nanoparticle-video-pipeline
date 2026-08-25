@@ -7,9 +7,9 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import numpy as np
+from airflow import DAG
 from airflow.operators.python import PythonOperator
 
-from airflow import DAG
 from nanotrack.config import PipelineConfig
 from nanotrack.export import detections_to_rows, read_detections_rows, write_csv
 from nanotrack.pipeline import run, run_from_detections
