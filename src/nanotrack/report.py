@@ -178,12 +178,14 @@ def build_tracking_report_figure(
     def _fmt(value, fmt):
         return fmt % value if value is not None else "n/a"
 
+    # Compact 9-line summary so it fits inside the Summary cell (12 lines at
+    # font 11 overflowed the cell height).
     summary_text = (
-        f"tracks: {result.get('n_tracks', 'n/a')}<br>"
+        f"tracks: {result.get('n_tracks', 'n/a')} | "
         f"pass_rate: {q.get('pass_rate', 'n/a')}<br>"
-        f"length_mean: {_fmt(s.get('length_mean'), '%.2f px')}<br>"
+        f"length_mean: {_fmt(s.get('length_mean'), '%.2f px')} | "
         f"length_std: {_fmt(s.get('length_std'), '%.2f px')}<br>"
-        f"angle_std: {_fmt(s.get('angle_std'), '%.2f deg')}<br>"
+        f"angle_std: {_fmt(s.get('angle_std'), '%.2f deg')} | "
         f"eccentricity_mean: {_fmt(s.get('eccentricity_mean'), '%.3f')}<br>"
         f"Dt: {_fmt(s.get('diffusion_coefficient_px2_per_s'), '%.3f px²/s')}<br>"
         f"Dr: {_fmt(s.get('rotational_diffusion_coefficient_rad2_per_s'), '%.5f rad²/s')}<br>"
@@ -197,11 +199,12 @@ def build_tracking_report_figure(
     FIG_W, FIG_H = 1200.0, 1100.0
     MARGIN = {"l": 80, "r": 80, "t": 100, "b": 80}
     plot_w = FIG_W - MARGIN["l"] - MARGIN["r"]
-    plot_h = FIG_H - MARGIN["t"] - MARGIN["b"]
-    y6_domain = fig.layout.yaxis6.domain  # (bottom, top) of the cell
     x6_domain = fig.layout.xaxis6.domain
     summary_x = (MARGIN["l"] + x6_domain[0] * plot_w) / FIG_W
-    summary_y = (MARGIN["b"] + y6_domain[1] * plot_h) / FIG_H  # top of Summary cell
+    # make_subplots places the "Summary" subplot title with its bottom anchor at
+    # paper y=0.2222 (the top of the cell). Anchor the text just below it so the
+    # content never renders above/over the title.
+    summary_y = 0.2222 - 0.025
     fig.add_annotation(
         xref="paper",
         yref="paper",
@@ -212,7 +215,7 @@ def build_tracking_report_figure(
         align="left",
         xanchor="left",
         yanchor="top",
-        font={"size": 11},
+        font={"size": 10},
     )
 
     quality = result.get("quality", {})
