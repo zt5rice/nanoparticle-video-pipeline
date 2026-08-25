@@ -39,6 +39,10 @@ def test_report_html_contains_sections(tmp_path):
     # Log-log (base 10) axes are enabled for both MSD and MSAD panels
     # (x + y for each -> at least 4 log axes).
     assert html.count('"type":"log"') >= 4
+    # Summary text is anchored in paper coordinates so it renders inside the
+    # Summary cell in all browsers (domain-referenced annotations on hidden
+    # axes are mispositioned).
+    assert '"xref":"paper"' in html
 
     path = write_tracking_report(result, cfg, tmp_path / "tracking_report.html", frames)
     assert path.exists()
