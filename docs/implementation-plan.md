@@ -58,6 +58,7 @@ analysis → data-quality validation → export.
 | `10575298.pdf` | h-BN nanosheets / graphene 2D diffusion | 2D translation diffusion, Kramers theory context; ~18 fps imaging |
 | `SM_d2sm00305h_zt.pdf` | SWCNT reptation in packed colloids (Soft Matter) | Ellipse-fit COM/orientation; TA-MSD; bending angle via rotated-parabola fit; Gittes backbone protocol |
 | `jc1204923.pdf` | Gittes et al. 1993, flexural rigidity from thermal shape fluctuations | Backbone extraction, arc-length tangent angle, Fourier-mode / parabola bending analysis |
+| `Science_2006.pdf` | Han et al. 2006, Brownian motion of an ellipsoid (Science) | Rod-frame MSD decomposition: parallel `⟨Δx̃²⟩=2D_a·t` and perpendicular `⟨Δỹ²⟩=2D_b·t` via co-moving body frame |
 | `SWNTs trackingV3.zip` | **Canonical** MATLAB code | Direct port source (see mapping below) |
 | `SWNTs tracking.rar` | Older development snapshot | Provenance only; no algorithm change (diff summary in `ref/README.md`) |
 
@@ -78,6 +79,9 @@ analysis → data-quality validation → export.
 4. F. Gittes, B. Mickey, J. Nettleton, J. Howard, *Flexural Rigidity of Microtubules and Actin
    Filaments Measured from Thermal Fluctuations in Shape*, J. Cell Biol. **1993**, 120 (4),
    923–934. DOI: [10.1083/jcb.120.4.923](https://doi.org/10.1083/jcb.120.4.923).
+5. Y. Han, A. M. Alsayed, M. Nobili, J. Zhang, T. C. Lubensky, A. G. Yodh, *Brownian Motion
+   of an Ellipsoid*, Science **2006**, 314 (5799), 626–630. DOI:
+   [10.1126/science.1130146](https://doi.org/10.1126/science.1130146).
 
 ### Key parameters (from `main.m`, V3)
 
@@ -187,7 +191,10 @@ Single-object tracking: each frame pick largest-area blob; link to nearest blob 
 
 Per-track: `length_mean`, `length_std`, `angle_std`, `eccentricity_mean`,
 `diffusion_coefficient_px2_per_s`, `rotational_diffusion_coefficient_rad2_per_s`,
-`msd_fit_r2`. MSD/MSAD use **internal averaging** (all pairs at each lag) evaluated at
+`msd_fit_r2`, plus rod-frame
+`diffusion_coefficient_parallel_px2_per_s`, `diffusion_coefficient_perpendicular_px2_per_s`,
+and `diffusion_anisotropy_ratio` (`D_par/D_perp`). MSD/MSAD use **internal averaging**
+(all pairs at each lag) evaluated at
 ~`msd_n_lags` (default 40) lags evenly spaced in **log scale** — fast for long videos and
 consistent with the published papers; `msd_curve_full`/`msad_curve_full` provide the
 exhaustive per-lag version for tests/correctness. Linear fit over the first
@@ -196,6 +203,16 @@ Gittes protocol: skeleton backbone → arc-length parametrization → tangent an
 rotated-parabola bending angle (mean/std in v1; Fourier modes optional, not in v1
 acceptance). Orientation is unwrapped mod 180° during tracking (vertical rods do not
 fake-jump at ±90°), and MSAD wraps angular deltas to [-90°, 90°).
+
+**Parallel / perpendicular (rod-frame) MSD** follows Han et al. (Science 2006):
+each single-step displacement is rotated into the body frame using the step's
+midpoint orientation `θ_n = (θ_n + θ_{n+1})/2`, then cumulatively summed into a
+co-moving body-frame trajectory `(x̃, ỹ)`. The component MSDs
+`⟨[Δx̃(τ)]²⟩ ≈ 2D_a·τ·dt` and `⟨[Δỹ(τ)]²⟩ ≈ 2D_b·τ·dt` are internally averaged over
+all starting times at the same log-spaced lags (`msd_parallel_perpendicular` /
+`msd_parallel_perpendicular_full`); `D_parallel = slope/2/dt` and
+`D_perpendicular = slope/2/dt`. Because the rotation is orthogonal,
+`MSD_total = MSD_parallel + MSD_perpendicular` exactly.
 
 ### `validation.report(track, cfg) -> DataQualityReport`
 
