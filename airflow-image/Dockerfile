@@ -1,7 +1,8 @@
 FROM apache/airflow:2.9.3-python3.11
 
 # Build context is the repository root (see docker-compose.yml), so src/ and dags/
-# are inside the context.
+# are inside the context. The directory is named airflow-image (not airflow) to
+# avoid shadowing the Airflow Python package.
 COPY --chown=airflow:root src /opt/airflow/src
 COPY --chown=airflow:root dags /opt/airflow/dags
 

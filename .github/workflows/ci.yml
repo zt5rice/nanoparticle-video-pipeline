@@ -30,25 +30,45 @@ jobs:
       - name: Wait for API
         run: |
           for i in $(seq 1 60); do
-            curl -sf http://localhost:8000/health && break
+            curl -sf --retry 5 --retry-all-errors --connect-timeout 5 \
+              http://localhost:8000/health && break
             sleep 5
           done
-          curl -sf http://localhost:8000/health
+          curl -sf --retry 5 --retry-all-errors --connect-timeout 5 \
+            http://localhost:8000/health
+      - name: Wait for infrastructure
+        run: |
+          for i in $(seq 1 60); do
+            curl -sf --retry 5 --retry-all-errors --connect-timeout 5 \
+              http://localhost:9090/-/healthy && break
+            sleep 5
+          done
+          curl -sf --retry 5 --retry-all-errors --connect-timeout 5 \
+            http://localhost:9090/-/healthy
+          for i in $(seq 1 60); do
+            curl -sf --retry 5 --retry-all-errors --connect-timeout 5 \
+              http://localhost:3000/api/health && break
+            sleep 5
+          done
+          curl -sf --retry 5 --retry-all-errors --connect-timeout 5 \
+            http://localhost:3000/api/health
+          for i in $(seq 1 90); do
+            curl -sf --retry 5 --retry-all-errors --connect-timeout 5 \
+              http://localhost:8080/health && break
+            sleep 5
+          done
+          curl -sf --retry 5 --retry-all-errors --connect-timeout 5 \
+            http://localhost:8080/health
       - name: API checks
         run: |
           curl -sf http://localhost:8000/health
           curl -sf -X POST http://localhost:8000/analyze \
             -H 'Content-Type: application/json' \
             -d '{"n_frames":60,"backend":"numpy"}' | grep '"quality_pass_rate":'
-          curl -sf http://localhost:8000/metrics | grep nanotrack_frames_total
-      - name: Infrastructure checks
-        run: |
-          curl -sf http://localhost:9090/-/healthy
-          curl -sf http://localhost:3000/api/health
-          curl -sf http://localhost:8080/health
+          curl -sf --retry 5 --retry-all-errors http://localhost:8000/metrics \
+            | grep nanotrack_frames_total
       - name: Airflow DAG run
         run: |
           docker compose exec -T airflow-webserver airflow dags test \
             nanoparticle_video_pipeline $(date +%Y-%m-%d) || true
           test -f output/latest_result.json
-

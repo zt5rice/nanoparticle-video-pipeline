@@ -3,3 +3,5 @@
 pytest>=7.4
 ruff>=0.1
 matplotlib>=3.7
+# FastAPI TestClient dependency (starlette.testclient requires httpx).
+httpx
