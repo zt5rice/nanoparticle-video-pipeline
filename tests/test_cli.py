@@ -5,6 +5,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import yaml
+
 from nanotrack.config import PipelineConfig
 from nanotrack.io import save_video
 from nanotrack.synth import generate
@@ -80,3 +82,45 @@ def test_cli_n_frames_slices_input(tmp_path):
     result = json.loads((out / "result.json").read_text(encoding="utf-8"))
     assert result["n_frames"] == 10
     assert result["n_detections"] == 10
+
+
+def test_cli_default_max_lag_capped_at_50(tmp_path):
+    """Without an explicit max_lag the real-video path keeps the 50-frame cap."""
+    frames, _ = generate(PipelineConfig(image_size=64, n_frames=200, seed=0))
+    video = tmp_path / "input.tif"
+    save_video(video, frames)
+    out = tmp_path / "out"
+
+    proc = _run_cli("--input", video, "--out", out)
+    assert proc.returncode == 0, proc.stderr
+    saved = yaml.safe_load((out / "config.yaml").read_text(encoding="utf-8"))
+    assert saved["max_lag"] == 50
+
+
+def test_cli_explicit_max_lag_not_overridden(tmp_path):
+    """--max-lag (or config max_lag) must survive the real-video path instead of
+    being reset to 50, so the QC report can show the long-lag par/perp regimes."""
+    frames, _ = generate(PipelineConfig(image_size=64, n_frames=200, seed=0))
+    video = tmp_path / "input.tif"
+    save_video(video, frames)
+    out = tmp_path / "out"
+
+    proc = _run_cli("--input", video, "--max-lag", "120", "--out", out)
+    assert proc.returncode == 0, proc.stderr
+    saved = yaml.safe_load((out / "config.yaml").read_text(encoding="utf-8"))
+    assert saved["max_lag"] == 120
+
+
+def test_cli_config_max_lag_honored(tmp_path):
+    """A YAML config with max_lag is honored for the real-video path."""
+    frames, _ = generate(PipelineConfig(image_size=64, n_frames=200, seed=0))
+    video = tmp_path / "input.tif"
+    save_video(video, frames)
+    cfg_path = tmp_path / "cfg.yaml"
+    cfg_path.write_text("backend: numpy\nmax_lag: 120\n", encoding="utf-8")
+    out = tmp_path / "out"
+
+    proc = _run_cli("--input", video, "--config", cfg_path, "--out", out)
+    assert proc.returncode == 0, proc.stderr
+    saved = yaml.safe_load((out / "config.yaml").read_text(encoding="utf-8"))
+    assert saved["max_lag"] == 120

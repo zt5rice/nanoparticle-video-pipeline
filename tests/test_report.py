@@ -5,6 +5,7 @@ import numpy as np
 from nanotrack.config import PipelineConfig
 from nanotrack.pipeline import run
 from nanotrack.report import (
+    _panel_max_lag,
     build_tracking_report,
     build_tracking_report_figure,
     write_tracking_report,
@@ -69,3 +70,17 @@ def test_report_has_parallel_perpendicular_traces():
     names = {t.name for t in fig.data}
     assert "MSD parallel" in names
     assert "MSD perpendicular" in names
+
+
+def test_panel_max_lag_honors_config_and_caps_at_n_half():
+    """The report panels use cfg.max_lag when explicitly set, never exceed n//2,
+    and fall back to the historical 50-frame cap when unset."""
+    default = PipelineConfig(image_size=64, n_frames=200, seed=0)
+    assert default.max_lag == 50
+    assert _panel_max_lag(default, 200) == 50
+
+    big = PipelineConfig(image_size=64, n_frames=200, seed=0, max_lag=5000)
+    assert big.max_lag == 5000
+    assert _panel_max_lag(big, 10_000) == 5000  # explicit value honored
+    assert _panel_max_lag(big, 200) == 100  # capped by n//2
+    assert _panel_max_lag(big, 2) == 1
