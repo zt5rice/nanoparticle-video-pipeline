@@ -92,6 +92,33 @@ analysis → data-quality validation → export.
    matrix `R_Θτ = [[cosΘ, sinΘ], [-sinΘ, cosΘ]]`. This is the basis of
    `msd_parallel_perpendicular` and of the author's MATLAB analysis (`mfile092019`).
 
+### Parallel/perpendicular MSD: Fakhri 2010 vs Han 2006
+
+`features.msd_parallel_perpendicular` implements the **Fakhri 2010** method (the author's
+MATLAB `mfile092019` recipe). It is *not* the Han/Yodh 2006 "co-moving body frame" method;
+the two share the same rotation-matrix form but differ in which orientation angle is used
+and how the displacement is constructed:
+
+| | Han et al. 2006 (free ellipsoid) | Fakhri et al. 2010 (SWCNT reptation in gel) |
+|---|---|---|
+| System | quasi-2D **free ellipsoid** (no tube confinement) | semiflexible SWCNT **reptating in agarose gel** |
+| Rotation angle | per-step midpoint orientation `q_n = [θ(t_{n-1}) + θ(t_n)] / 2` (θ changes negligibly in one frame) | lag-interval-averaged tube orientation `Θ_τ(t) = (1/τ)∫_t^{t+τ} θ(t') dt'` |
+| What is rotated | **each single-frame displacement** `d x_n` into the body frame, then accumulated `x̃(t) = Σ d x̃_k` | the **whole lag-τ displacement** `Δr = r(t+τ) − r(t)` into the tube frame |
+| MSD result | `⟨Δx̃²⟩ = 2 D_a t` (long axis), `⟨Δỹ²⟩ = 2 D_b t` (short axis) — linear at all times | `⟨Δs²⟩`, `⟨Δn²⟩` (parallel/perp to tube): short-time anisotropic, crossover `Δn² ~ D_∥ D_r t²`, then converge to isotropic for `t >> τ_r` |
+| Long-time behavior | body-frame components stay linear (frame rotates with the rod); the isotropic crossover is seen in the **lab frame** at fixed initial angle | both tube-frame components **converge** because the interval-averaged tube loses orientation memory |
+| Averaging | ensemble over trajectories at different initial angles `q0` | time average over one long trajectory (paper also averages 11 SWCNTs) |
+| Purpose | extract intrinsic anisotropic diffusivities `D_a`, `D_b` of a free ellipsoid | characterize reptation (tube) dynamics: confinement, disengagement, crossover, isotropization |
+
+Key consequences for this codebase:
+- For small lags `Θ_τ ≈ θ(t)`, so Fakhri's method reduces approximately to the
+  instantaneous-frame rotation and recovers the short-time anisotropy — same as Han.
+- The two methods differ measurably at longer lags: a per-step co-moving frame
+  (Han style) does **not** make `⟨Δs²⟩` and `⟨Δn²⟩` converge at long times, whereas the
+  interval-averaged tube (Fakhri style) does — matching the author's experimental
+  observation that long-time parallel/perp MSDs become close.
+- Han 2006's body-frame variant is intentionally **not implemented** here; it is only
+  documented as context. See refs. 5 (Han 2006) and 6 (Fakhri 2010, incl. SOM appendix).
+
 ### Key parameters (from `main.m`, V3)
 
 `featsize(masscut)=10`, `stdThreshold=3.0`, `maxdisp=10 px`, `goodenough=20 frames`,
