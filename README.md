@@ -31,6 +31,20 @@ docker compose up --build
 
 Services: API `:8000`, Airflow `:8080`, Prometheus `:9090`, Grafana `:3000`.
 
+## Example outputs
+
+**Tracking QC report** — an interactive HTML report is written to
+`output/tracking_report.html` after every run (trajectory overlaid on the first frame,
+x/y vs frame, unwrapped angle in rad vs frame, MSD vs lag). Static preview:
+
+![Tracking QC report](docs/assets/tracking_qc_preview.png)
+
+**Tracking overlay video** — `--overlay` draws the tracked trajectory and orientation
+onto the input video (`output/tracking_overlay.mp4`, or `.gif` / `.png` via
+`--overlay-format`). Example on a single-molecule (vertical-rod) video:
+
+![Tracking overlay on a single-molecule video](docs/assets/tracking_overlay.gif)
+
 ## Layout
 
 ```
