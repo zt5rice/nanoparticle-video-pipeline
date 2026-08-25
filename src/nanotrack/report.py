@@ -103,10 +103,11 @@ def build_tracking_report_figure(
             col=1,
         )
 
-    # 4. MSD + rod-frame parallel/perpendicular MSD, log-spaced lags, log-log
-    # (base 10) axes. The rod-frame components follow Han et al. (Science 2006):
-    # per-step displacements are rotated into the body frame with the midpoint
-    # orientation, cumulatively summed, then MSD of each component is taken.
+    # 4. MSD + parallel/perpendicular MSD, log-spaced lags, log-log (base 10)
+    # axes. The parallel/perpendicular components follow the author's MATLAB
+    # method (MATLAB code): each lag-tau displacement is rotated into the rod
+    # frame by the interval-averaged orientation, so the two components
+    # converge at long times once the orientation memory is lost.
     if present.sum() >= 3:
         lags, msd = msd_curve(
             xs[present], ys[present], max_lag=min(50, int(present.sum()) // 2), n_lags=20

@@ -1,10 +1,13 @@
 """Track features: MSD/MSAD with internal averaging, parallel/perpendicular
-(rod-frame) MSD, diffusion coefficients, and shape-fluctuation statistics
-(Gittes-style bending angle is Phase 2+; v1 reports length/angle/eccentricity
-statistics).
+MSD, diffusion coefficients, and shape-fluctuation statistics (Gittes-style
+bending angle is Phase 2+; v1 reports length/angle/eccentricity statistics).
 
-Rod-frame MSD decomposition follows Han, Alsayed, Nobili, Zhang, Lubensky &
-Yodh, "Brownian Motion of an Ellipsoid", Science 314, 626 (2006).
+Parallel/perpendicular MSD follows the author's MATLAB analysis
+(MATLAB code: MSDparaperpNEWshortgbn_fcn.m / GetMSDparaperpshortgbnUniTime2.m):
+each lag-tau lab-frame displacement is rotated into the rod frame by the
+interval-averaged orientation, so short-time lags recover the intrinsic
+anisotropy (2 D_a t / 2 D_b t) and long-time lags converge to isotropic
+diffusion once the orientation memory is lost.
 """
 
 from __future__ import annotations
@@ -119,16 +122,27 @@ def msd_parallel_perpendicular(
     n_lags: int = 40,
     log_spaced: bool = True,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Rod-frame MSD decomposed into parallel and perpendicular components.
+    """Parallel/perpendicular MSD via interval-averaged rod orientation.
 
-    Follows Han et al. (Science 2006): each single-step lab-frame displacement is
-    rotated into the body frame using the step's midpoint orientation
-    ``theta_n = (theta_n + theta_{n+1}) / 2``, then cumulatively summed to build
-    the co-moving body-frame trajectory ``(x~, y~)``. The MSD of each component
-    is internally averaged over all starting times:
+    Method follows the author's MATLAB analysis (MATLAB code):
+    for each lag ``tau`` and starting frame ``j``, the lab-frame displacement
+    ``dr = r(j+tau) - r(j)`` is rotated into the rod frame using the *average*
+    orientation over the interval ``[j, j+tau]`` (unwrapped, in rad), then each
+    component is squared and internally averaged over all starting times:
 
-        msd_par(lag)  = <[x~(t+lag) - x~(t)]^2>  ~ 2 * D_parallel  * lag * dt
-        msd_perp(lag) = <[y~(t+lag) - y~(t)]^2>  ~ 2 * D_perpendicular * lag * dt
+        a = mean_{k in [j, j+tau]} theta_k
+        par_j  = ( cos(a)*dx + sin(a)*dy )^2      # along the rod long axis
+        perp_j = ( -sin(a)*dx + cos(a)*dy )^2     # normal to the rod axis
+
+    (The author's MATLAB angle file uses a flipped y-up frame; expressed in our
+    image coordinates (y down) its rotation is exactly the parallel/normal
+    decomposition above.)
+
+    Because the frame is re-averaged per interval, short-time lags recover the
+    intrinsic rod mobility (``msd_par ~ 2*D_a*t``, ``msd_perp ~ 2*D_b*t``),
+    while at times ``t >> tau_rot`` the orientation memory is lost and both
+    components converge to the isotropic total diffusion
+    (``msd_par ~ msd_perp ~ (D_a + D_b)*t``).
 
     Same lag-sampling options as :func:`msd_curve` (log-spaced for long videos).
     """
@@ -139,24 +153,23 @@ def msd_parallel_perpendicular(
     if max_lag < 1 or n < 2:
         return np.array([], dtype=float), np.array([], dtype=float), np.array([], dtype=float)
 
-    # Lab-frame step displacements.
-    dx = np.diff(xs)
-    dy = np.diff(ys)
-    # Orientation is periodic with 180 deg; unwrap so the body frame is continuous.
+    # Orientation is periodic with 180 deg; unwrap so interval means are stable.
     ang = np.unwrap(np.deg2rad(angles_deg), period=np.pi)
-    mid = 0.5 * (ang[:-1] + ang[1:])  # midpoint orientation of each step (rad)
-    cos_m, sin_m = np.cos(mid), np.sin(mid)
-
-    # Rotate each step into the body frame and integrate (co-moving frame).
-    xb = np.concatenate([[0.0], np.cumsum(cos_m * dx + sin_m * dy)])
-    yb = np.concatenate([[0.0], np.cumsum(-sin_m * dx + cos_m * dy)])
+    cum_ang = np.concatenate([[0.0], np.cumsum(ang)])
 
     lags = _log_spaced_lags(max_lag, n_lags) if log_spaced else np.arange(1, max_lag + 1)
     msd_par = np.empty(len(lags), dtype=float)
     msd_perp = np.empty(len(lags), dtype=float)
     for k, lag in enumerate(lags):
-        msd_par[k] = float(np.mean((xb[lag:] - xb[:-lag]) ** 2))
-        msd_perp[k] = float(np.mean((yb[lag:] - yb[:-lag]) ** 2))
+        # Interval-averaged orientation over [j, j+lag] inclusive (lag+1 pts).
+        a = (cum_ang[lag + 1 :] - cum_ang[: n - lag]) / (lag + 1.0)
+        dx = xs[lag:] - xs[:-lag]
+        dy = ys[lag:] - ys[:-lag]
+        c, s = np.cos(a), np.sin(a)
+        par = c * dx + s * dy
+        perp = -s * dx + c * dy
+        msd_par[k] = float(np.mean(par * par))
+        msd_perp[k] = float(np.mean(perp * perp))
     return lags.astype(float), msd_par, msd_perp
 
 
