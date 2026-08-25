@@ -77,6 +77,15 @@ onto the input video (`output/tracking_overlay.mp4`, or `.gif` / `.png` via
 
 ![Tracking overlay on a single-molecule video](docs/assets/tracking_overlay.gif)
 
+## Citation
+
+If you use this tool in your work, please cite the methodology paper:
+
+> Z. Tang, S. L. Eichmann, B. Lounis, L. Cognet, F. C. MacKintosh, M. Pasquali,
+> *Single-walled carbon nanotube reptation dynamics in submicron sized pores from
+> randomly packed mono-sized colloids*, Soft Matter **2022**.
+> DOI: [10.1039/D2SM00305H](https://doi.org/10.1039/D2SM00305H)
+
 ## Layout
 
 ```
