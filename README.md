@@ -74,6 +74,15 @@ axes, and a run summary). Static preview:
 
 ![Tracking QC report](docs/assets/tracking_qc_preview.png)
 
+**Tracking QC report — 10,000-frame real video (parallel/perpendicular MSD trend)** —
+the full 3×2 QC report from a 10,000-frame single-molecule SWCNT video
+(`--max-lag 5000`). The MSD panel shows the Fakhri et al. (Science 2010)
+parallel/perpendicular MSD regimes: anisotropic short-time `Δs² >> Δn²`, the
+super-linear crossover `Δn² ~ D∥·D_r·t²`, and the onset of isotropic convergence
+beyond `τ_r = 1/(2D_r)`:
+
+![Tracking QC report — 10k-frame par/perp MSD trend](docs/assets/tracking_report_nt3_full.png)
+
 **Tracking overlay video** — `--overlay` draws the tracked trajectory and orientation
 onto the input video (`output/tracking_overlay.mp4`, or `.gif` / `.png` via
 `--overlay-format`). Example on a single-molecule (vertical-rod) video:
