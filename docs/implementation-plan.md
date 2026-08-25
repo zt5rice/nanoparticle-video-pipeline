@@ -58,6 +58,8 @@ analysis → data-quality validation → export.
 | `10575298.pdf` | h-BN nanosheets / graphene 2D diffusion | 2D translation diffusion, Kramers theory context; ~18 fps imaging |
 | `SM_d2sm00305h_zt.pdf` | SWCNT reptation in packed colloids (Soft Matter) | Ellipse-fit COM/orientation; TA-MSD; bending angle via rotated-parabola fit; Gittes backbone protocol |
 | `jc1204923.pdf` | Gittes et al. 1993, flexural rigidity from thermal shape fluctuations | Backbone extraction, arc-length tangent angle, Fourier-mode / parabola bending analysis |
+| `Science_2006.pdf` | Han et al. 2006, Brownian motion of an ellipsoid (Science) | Context for rod-frame short-time anisotropy (`⟨Δx̃²⟩=2D_a·t`, `⟨Δỹ²⟩=2D_b·t`); the implemented parallel/perp MSD follows Fakhri 2010, not Han 2006 |
+| `Fakhri et al. - 2010 - Brownian Motion of Stiff Filaments in a Crowded En.pdf` + `Fakhri-SOM.pdf` | Fakhri et al. 2010, Brownian motion of stiff filaments in a crowded environment (Science) + SOM | **Source of the parallel/perp MSD method**: COM displacement decomposed into components parallel/perpendicular to the running time-averaged reptation tube (SOM appendix, eq. for `R_Θτ`); author's MATLAB `MATLAB code` implements the same recipe |
 | `SWNTs trackingV3.zip` | **Canonical** MATLAB code | Direct port source (see mapping below) |
 | `SWNTs tracking.rar` | Older development snapshot | Provenance only; no algorithm change (diff summary in `ref/README.md`) |
 
@@ -78,6 +80,17 @@ analysis → data-quality validation → export.
 4. F. Gittes, B. Mickey, J. Nettleton, J. Howard, *Flexural Rigidity of Microtubules and Actin
    Filaments Measured from Thermal Fluctuations in Shape*, J. Cell Biol. **1993**, 120 (4),
    923–934. DOI: [10.1083/jcb.120.4.923](https://doi.org/10.1083/jcb.120.4.923).
+5. Y. Han, A. M. Alsayed, M. Nobili, J. Zhang, T. C. Lubensky, A. G. Yodh, *Brownian Motion
+   of an Ellipsoid*, Science **2006**, 314 (5799), 626–630. DOI:
+   [10.1126/science.1130146](https://doi.org/10.1126/science.1130146).
+6. N. Fakhri, F. C. MacKintosh, B. Lounis, L. Cognet, M. Pasquali, *Brownian Motion of Stiff
+   Filaments in a Crowded Environment*, Science **2010**, 330 (6012), 1804–1807. DOI:
+   [10.1126/science.1197321](https://doi.org/10.1126/science.1197321). The supporting online
+   material (`Fakhri-SOM.pdf`, in `ref/`) gives the parallel/perpendicular MSD decomposition:
+   the center-of-mass displacement is split into components parallel and perpendicular to the
+   running time-averaged reptation tube, `Θ_τ = (1/τ)∫_t^{t+τ} θ(t')dt'`, via the rotation
+   matrix `R_Θτ = [[cosΘ, sinΘ], [-sinΘ, cosΘ]]`. This is the basis of
+   `msd_parallel_perpendicular` and of the author's MATLAB analysis (`MATLAB code`).
 
 ### Key parameters (from `main.m`, V3)
 
@@ -187,7 +200,10 @@ Single-object tracking: each frame pick largest-area blob; link to nearest blob 
 
 Per-track: `length_mean`, `length_std`, `angle_std`, `eccentricity_mean`,
 `diffusion_coefficient_px2_per_s`, `rotational_diffusion_coefficient_rad2_per_s`,
-`msd_fit_r2`. MSD/MSAD use **internal averaging** (all pairs at each lag) evaluated at
+`msd_fit_r2`, plus rod-frame
+`diffusion_coefficient_parallel_px2_per_s`, `diffusion_coefficient_perpendicular_px2_per_s`,
+and `diffusion_anisotropy_ratio` (`D_par/D_perp`). MSD/MSAD use **internal averaging**
+(all pairs at each lag) evaluated at
 ~`msd_n_lags` (default 40) lags evenly spaced in **log scale** — fast for long videos and
 consistent with the published papers; `msd_curve_full`/`msad_curve_full` provide the
 exhaustive per-lag version for tests/correctness. Linear fit over the first
@@ -196,6 +212,20 @@ Gittes protocol: skeleton backbone → arc-length parametrization → tangent an
 rotated-parabola bending angle (mean/std in v1; Fourier modes optional, not in v1
 acceptance). Orientation is unwrapped mod 180° during tracking (vertical rods do not
 fake-jump at ±90°), and MSAD wraps angular deltas to [-90°, 90°).
+
+**Parallel / perpendicular MSD** follows the author's MATLAB analysis
+(`MATLAB code`: `MSDparaperpNEWshortgbn_fcn.m` /
+`GetMSDparaperpshortgbnUniTime2.m`): for each lag τ and starting frame j, the
+lab-frame displacement `Δr = r(j+τ) − r(j)` is rotated into the rod frame using
+the **average orientation over the interval** `[j, j+τ]` (unwrapped), then
+squared and internally averaged:
+`MSD_par(τ)=⟨(cos a·Δx − sin a·Δy)²⟩`, `MSD_perp(τ)=⟨(sin a·Δx + cos a·Δy)²⟩`,
+`a = mean_{k∈[j,j+τ]} θ_k`. Short-time lags recover the intrinsic rod mobility
+(`≈2D_a·τ·dt`, `≈2D_b·τ·dt`); at times `≫ τ_rot` the orientation memory is lost
+and both components converge to the isotropic total diffusion
+(`MSD_par ≈ MSD_perp ≈ (D_a+D_b)·τ·dt`). `D_parallel = slope/2/dt`,
+`D_perpendicular = slope/2/dt` from the short-lag linear fit. Reference
+context: Han et al., Science 2006 (rotational coupling / crossover physics).
 
 ### `validation.report(track, cfg) -> DataQualityReport`
 

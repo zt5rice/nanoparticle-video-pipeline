@@ -69,7 +69,8 @@ Services: API `:8000`, Airflow `:8080`, Prometheus `:9090`, Grafana `:3000`.
 
 **Tracking QC report** — an interactive HTML report is written to
 `output/tracking_report.html` after every run (trajectory overlaid on the first frame,
-x/y vs frame, unwrapped angle in deg vs frame, MSD vs lag). Static preview:
+x/y vs frame, unwrapped angle in deg vs frame, MSD/MSAD vs lag on log-log (base 10)
+axes, and a run summary). Static preview:
 
 ![Tracking QC report](docs/assets/tracking_qc_preview.png)
 
@@ -78,6 +79,16 @@ onto the input video (`output/tracking_overlay.mp4`, or `.gif` / `.png` via
 `--overlay-format`). Example on a single-molecule (vertical-rod) video:
 
 ![Tracking overlay on a single-molecule video](docs/assets/tracking_overlay.gif)
+
+**Observability & orchestration stack** (simulated previews with sample data; see the
+real stack via `docker compose up` — Airflow `:8080`, Prometheus `:9090`, Grafana
+`:3000`):
+
+![Grafana nanotrack-pipeline dashboard](docs/assets/grafana_preview.png)
+
+![Apache Airflow DAG](docs/assets/airflow_preview.png)
+
+![Prometheus targets & graph](docs/assets/prometheus_preview.png)
 
 ## Citation
 
