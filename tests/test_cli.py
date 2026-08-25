@@ -66,3 +66,17 @@ def test_cli_resume_reuses_detections(tmp_path):
     second = json.loads((out / "result.json").read_text(encoding="utf-8"))
     assert second["n_detections"] == first["n_detections"]
     assert second["n_tracks"] == first["n_tracks"]
+
+
+def test_cli_n_frames_slices_input(tmp_path):
+    """--n-frames N must actually analyze only the first N frames."""
+    frames, _ = generate(PipelineConfig(image_size=128, n_frames=40, seed=0))
+    video = tmp_path / "input.tif"
+    save_video(video, frames)
+    out = tmp_path / "out"
+
+    proc = _run_cli("--input", video, "--n-frames", "10", "--out", out)
+    assert proc.returncode == 0, proc.stderr
+    result = json.loads((out / "result.json").read_text(encoding="utf-8"))
+    assert result["n_frames"] == 10
+    assert result["n_detections"] == 10

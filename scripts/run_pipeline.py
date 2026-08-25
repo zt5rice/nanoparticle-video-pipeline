@@ -141,6 +141,8 @@ def main() -> None:
                 cfg.n_frames = frames.shape[0]
             # Re-derive max_lag for the actual number of frames.
             cfg.max_lag = min(50, max(1, cfg.n_frames // 2))
+            # --n-frames limits the analysis to a prefix of the video.
+            frames = frames[: cfg.n_frames]
         else:
             frames, gt = generate(cfg)
         result_raw = run(frames, cfg, gt, raw=True)
