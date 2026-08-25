@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  lint-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install
+        run: pip install -r requirements-dev.txt
+      - name: Lint
+        run: ruff check src tests dags
+      - name: Test
+        run: pytest
+      - name: Smoke
+        run: python scripts/smoke_test.py
+
+  docker-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare writable output directory
+        # Airflow containers run as the non-root 'airflow' user; the bind-mounted
+        # ./output must be writable by them (and by the API container).
+        run: mkdir -p output && chmod -R 777 output
+      - name: Build and start the stack
+        run: docker compose up --build -d
+      - name: Wait for API
+        run: |
+          for i in $(seq 1 60); do
+            curl -sf --retry 5 --retry-all-errors --connect-timeout 5 \
+              http://localhost:8000/health && break
+            sleep 5
+          done
+          curl -sf --retry 5 --retry-all-errors --connect-timeout 5 \
+            http://localhost:8000/health
+      - name: Wait for infrastructure
+        run: |
+          for i in $(seq 1 60); do
+            curl -sf --retry 5 --retry-all-errors --connect-timeout 5 \
+              http://localhost:9090/-/healthy && break
+            sleep 5
+          done
+          curl -sf --retry 5 --retry-all-errors --connect-timeout 5 \
+            http://localhost:9090/-/healthy
+          for i in $(seq 1 60); do
+            curl -sf --retry 5 --retry-all-errors --connect-timeout 5 \
+              http://localhost:3000/api/health && break
+            sleep 5
+          done
+          curl -sf --retry 5 --retry-all-errors --connect-timeout 5 \
+            http://localhost:3000/api/health
+          for i in $(seq 1 90); do
+            curl -sf --retry 5 --retry-all-errors --connect-timeout 5 \
+              http://localhost:8080/health && break
+            sleep 5
+          done
+          curl -sf --retry 5 --retry-all-errors --connect-timeout 5 \
+            http://localhost:8080/health
+      - name: API checks
+        run: |
+          curl -sf http://localhost:8000/health
+          curl -sf -X POST http://localhost:8000/analyze \
+            -H 'Content-Type: application/json' \
+            -d '{"n_frames":60,"backend":"numpy"}' | grep '"quality_pass_rate":'
+          curl -sf --retry 5 --retry-all-errors http://localhost:8000/metrics \
+            | grep nanotrack_frames_total
+      - name: Airflow DAG run
+        run: |
+          docker compose exec -T airflow-webserver airflow dags test \
+            nanoparticle_video_pipeline $(date +%Y-%m-%d) || true
+          test -f output/latest_result.json

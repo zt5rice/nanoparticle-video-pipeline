@@ -17,6 +17,15 @@ python scripts/run_pipeline.py --input video.tif --out output   # analyze a real
 python scripts/run_pipeline.py --out output --resume            # rebuild from detections.csv
 ```
 
+### Docker stack (local)
+
+```bash
+mkdir -p output && chmod -R 777 output   # Airflow runs as a non-root user
+docker compose up --build
+```
+
+Services: API `:8000`, Airflow `:8080`, Prometheus `:9090`, Grafana `:3000`.
+
 ## Layout
 
 ```

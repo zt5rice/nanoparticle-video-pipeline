@@ -5,7 +5,10 @@ from pathlib import Path
 
 import pytest
 
-pytest.importorskip("airflow")
+# Skip when the real Airflow package is unavailable (CI without airflow, or when
+# a local directory shadows the package name). Importing a submodule guards
+# against namespace-package shadowing.
+pytest.importorskip("airflow.operators.python")
 
 DAG_FILE = Path(__file__).resolve().parents[1] / "dags" / "nanoparticle_pipeline.py"
 
@@ -27,4 +30,3 @@ def test_dag_parses_with_expected_tasks():
         "features_validate",
         "export",
     }
-

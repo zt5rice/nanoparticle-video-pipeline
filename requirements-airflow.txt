@@ -1,0 +1,6 @@
+# DAG runtime deps only (nanotrack import chain: config/synth/preprocessing/
+# detection/tracking/features/validation/pipeline/export).
+numpy>=1.24
+scipy>=1.10
+pandas>=2.0
+pyyaml>=6.0
