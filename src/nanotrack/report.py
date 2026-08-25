@@ -9,7 +9,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 from .config import PipelineConfig
-from .features import msd_curve
+from .features import msad_curve, msd_curve
 
 
 def _series(track: dict) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
@@ -25,7 +25,7 @@ def _series(track: dict) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray
 def build_tracking_report_figure(
     result: dict, cfg: PipelineConfig, frames: np.ndarray | None = None
 ) -> go.Figure:
-    """Build the 2x2 QC figure (trajectory, x/y, angle in rad, MSD)."""
+    """Build the 3x2 QC figure (trajectory, x/y, angle, MSD/MSAD log-log, summary)."""
     track = result.get("track", {})
     xs, ys, angles, missing, interp = _series(track)
     present = ~missing
@@ -33,9 +33,16 @@ def build_tracking_report_figure(
     # Track angles are stored in degrees; plot them as-is with a truthful axis label.
 
     fig = make_subplots(
-        rows=2,
+        rows=3,
         cols=2,
-        subplot_titles=("Trajectory (px)", "x / y vs frame", "Angle (rad) vs frame", "MSD vs lag"),
+        subplot_titles=(
+            "Trajectory (px)",
+            "x / y vs frame",
+            "Angle (deg) vs frame",
+            "MSD vs lag (log10)",
+            "MSAD vs lag (log10)",
+            "Summary",
+        ),
     )
 
     # 1. Trajectory (optionally overlaid on the first frame image).
@@ -95,7 +102,7 @@ def build_tracking_report_figure(
             col=1,
         )
 
-    # 4. MSD with log-spaced lags.
+    # 4. MSD with log-spaced lags, plotted on log-log (base 10) axes.
     if present.sum() >= 3:
         lags, msd = msd_curve(
             xs[present], ys[present], max_lag=min(50, int(present.sum()) // 2), n_lags=20
@@ -105,20 +112,66 @@ def build_tracking_report_figure(
                 go.Scatter(x=lags, y=msd, mode="markers+lines", name="MSD"), row=2, col=2
             )
 
+    # 5. MSAD (mean squared angular displacement) with log-spaced lags, log-log axes.
+    if present.sum() >= 3:
+        ang_present = angles[present]
+        lags_a, msad = msad_curve(ang_present, max_lag=min(50, int(present.sum()) // 2), n_lags=20)
+        if len(lags_a) > 1:
+            fig.add_trace(
+                go.Scatter(x=lags_a, y=msad, mode="markers+lines", name="MSAD"),
+                row=3,
+                col=1,
+            )
+
+    # 6. Summary text panel.
+    s = result.get("summary", {}) or {}
+    q = result.get("quality", {}) or {}
+
+    def _fmt(value, fmt):
+        return fmt % value if value is not None else "n/a"
+
+    summary_text = (
+        f"tracks: {result.get('n_tracks', 'n/a')}<br>"
+        f"pass_rate: {q.get('pass_rate', 'n/a')}<br>"
+        f"length_mean: {_fmt(s.get('length_mean'), '%.2f px')}<br>"
+        f"length_std: {_fmt(s.get('length_std'), '%.2f px')}<br>"
+        f"angle_std: {_fmt(s.get('angle_std'), '%.2f deg')}<br>"
+        f"eccentricity_mean: {_fmt(s.get('eccentricity_mean'), '%.3f')}<br>"
+        f"Dt: {_fmt(s.get('diffusion_coefficient_px2_per_s'), '%.3f px²/s')}<br>"
+        f"Dr: {_fmt(s.get('rotational_diffusion_coefficient_rad2_per_s'), '%.5f rad²/s')}<br>"
+        f"MSD fit R²: {_fmt(s.get('msd_fit_r2'), '%.3f')}"
+    )
+    fig.add_annotation(
+        xref="x6 domain",
+        yref="y6 domain",
+        x=0.0,
+        y=1.0,
+        text=summary_text,
+        showarrow=False,
+        align="left",
+        xanchor="left",
+        yanchor="top",
+        font={"size": 12},
+    )
+
     quality = result.get("quality", {})
     title = (
         f"nanotrack tracking QC — frames={len(xs)} tracks={result.get('n_tracks')} "
         f"pass_rate={quality.get('pass_rate')}"
     )
-    fig.update_layout(title=title, height=800, showlegend=True)
+    fig.update_layout(title=title, height=1100, showlegend=True)
     fig.update_xaxes(title_text="x (px)", row=1, col=1)
     fig.update_yaxes(title_text="y (px)", row=1, col=1, scaleanchor="x")
     fig.update_xaxes(title_text="frame", row=1, col=2)
     fig.update_yaxes(title_text="px", row=1, col=2)
     fig.update_xaxes(title_text="frame", row=2, col=1)
     fig.update_yaxes(title_text="angle (deg)", row=2, col=1)
-    fig.update_xaxes(title_text="lag (frames)", row=2, col=2)
+    fig.update_xaxes(title_text="lag (frames)", row=2, col=2, type="log")
     fig.update_yaxes(title_text="MSD (px^2)", row=2, col=2)
+    fig.update_xaxes(title_text="lag (frames)", row=3, col=1, type="log")
+    fig.update_yaxes(title_text="MSAD (rad^2)", row=3, col=1, type="log")
+    fig.update_xaxes(visible=False, row=3, col=2)
+    fig.update_yaxes(visible=False, row=3, col=2)
     return fig
 
 

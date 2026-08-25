@@ -23,8 +23,13 @@ def test_report_html_contains_sections(tmp_path):
     # Frame overlay is rendered as a plotly image trace.
     assert '"type":"image"' in html
     # Axis labels are present on all four panels.
-    for label in ("x (px)", "y (px)", "frame", "angle (deg)", "lag (frames)", "MSD (px^2)"):
+    for label in (
+        "x (px)", "y (px)", "frame", "angle (deg)", "lag (frames)",
+        "MSD (px^2)", "MSAD (rad^2)",
+    ):
         assert label in html
+    # Log-log (base 10) axes are enabled for the MSD/MSAD panels.
+    assert '"type":"log"' in html
 
     path = write_tracking_report(result, cfg, tmp_path / "tracking_report.html", frames)
     assert path.exists()
