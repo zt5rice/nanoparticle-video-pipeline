@@ -46,6 +46,8 @@ Actions CI 与 GitHub 发布。默认用合成数据演示；真实视频加载�
 | `10575298.pdf` | h-BN 纳米片 / 石墨烯二维扩散 | 二维平动扩散、Kramers 理论背景；~18 fps 成像 |
 | `SM_d2sm00305h_zt.pdf` | SWCNT 在多孔介质中的 reptation（Soft Matter） | 椭圆拟合 COM/朝向；TA-MSD；旋转抛物线拟合弯曲角；Gittes backbone 协议 |
 | `jc1204923.pdf` | Gittes et al. 1993，热涨落测柔韧性 | backbone 提取、弧长切线角、Fourier 模态 / 抛物线弯曲分析 |
+| `Science_2006.pdf` | Han et al. 2006，椭球布朗运动（Science） | 杆坐标系短时各向异性背景（`⟨Δx̃²⟩=2D_a·t`、`⟨Δỹ²⟩=2D_b·t`）；本实现的 parallel/perp MSD 遵循 Fakhri 2010，而非 Han 2006 |
+| `Fakhri et al. - 2010 - Brownian Motion of Stiff Filaments in a Crowded En.pdf` + `Fakhri-SOM.pdf` | Fakhri et al. 2010，拥挤环境中刚性丝的布朗运动（Science）+ SOM | **parallel/perp MSD 方法来源**：质心位移分解为平行/垂直于 running time-averaged reptation tube 的分量（SOM 附录，`R_Θτ` 公式）；作者的 MATLAB `mfile092019` 即实现该做法 |
 | `SWNTs trackingV3.zip` | **规范版** MATLAB 代码 | 直接移植来源（见下方映射） |
 | `SWNTs tracking.rar` | 更早开发快照 | 仅溯源；无算法差异（diff 摘要见 `ref/README.md`） |
 
@@ -66,6 +68,40 @@ Actions CI 与 GitHub 发布。默认用合成数据演示；真实视频加载�
 4. F. Gittes, B. Mickey, J. Nettleton, J. Howard, *Flexural Rigidity of Microtubules and Actin
    Filaments Measured from Thermal Fluctuations in Shape*, J. Cell Biol. **1993**, 120 (4),
    923–934. DOI: [10.1083/jcb.120.4.923](https://doi.org/10.1083/jcb.120.4.923).
+
+5. Y. Han, A. M. Alsayed, M. Nobili, J. Zhang, T. C. Lubensky, A. G. Yodh, *Brownian Motion
+   of an Ellipsoid*, Science **2006**, 314 (5799), 626–630. DOI:
+   [10.1126/science.1130146](https://doi.org/10.1126/science.1130146).
+6. N. Fakhri, F. C. MacKintosh, B. Lounis, L. Cognet, M. Pasquali, *Brownian Motion of Stiff
+   Filaments in a Crowded Environment*, Science **2010**, 330 (6012), 1804–1807. DOI:
+   [10.1126/science.1197321](https://doi.org/10.1126/science.1197321). 补充材料
+   （`Fakhri-SOM.pdf`，在 `ref/` 中）给出 parallel/perp MSD 分解：质心位移分解为平行/垂直于
+   running time-averaged reptation tube 的分量，`Θ_τ = (1/τ)∫_t^{t+τ} θ(t')dt'`，旋转矩阵
+   `R_Θτ = [[cosΘ, sinΘ], [-sinΘ, cosΘ]]`。这是 `msd_parallel_perpendicular` 与作者 MATLAB
+   分析（`mfile092019`）的基础。
+
+
+### Parallel/perpendicular MSD：Fakhri 2010 vs Han 2006
+
+`features.msd_parallel_perpendicular` 实现的是 **Fakhri 2010** 方法（即作者 MATLAB `mfile092019`
+的做法），**不是** Han/Yodh 2006 的“随动体坐标系（co-moving body frame）”方法；两者旋转矩阵形式
+相同，但**使用的朝向角**与**位移构造方式**不同：
+
+| | Han et al. 2006（自由椭球） | Fakhri et al. 2010（凝胶中 SWCNT 爬行） |
+|---|---|---|
+| 系统 | 准二维 **自由椭球**（无管道约束） | 琼脂糖凝胶中 **reptation（爬行）** 的半柔性 SWCNT |
+| 旋转角度 | 单步中点朝向 `q_n = [θ(t_{n-1}) + θ(t_n)] / 2`（一帧内 θ 变化可忽略） | lag 区间平均管道朝向 `Θ_τ(t) = (1/τ)∫_t^{t+τ} θ(t') dt'` |
+| 旋转对象 | **逐帧位移** `d x_n` 旋入体坐标系后累加 `x̃(t) = Σ d x̃_k` | 直接旋转 **整个 lag-τ 位移** `Δr = r(t+τ) − r(t)` 到管道坐标系 |
+| MSD 结果 | `⟨Δx̃²⟩ = 2 D_a t`（长轴）、`⟨Δỹ²⟩ = 2 D_b t`（短轴）——任何时刻都线性 | `⟨Δs²⟩`、`⟨Δn²⟩`（平行/垂直于管道）：短时各向异性、交叉区 `Δn² ~ D_∥ D_r t²`、`t >> τ_r` 后收敛为各向同性 |
+| 长时间行为 | 体坐标系分量保持线性（坐标系随棒转动）；各向同性交叉只在**固定初始角的 lab 系**中体现 | 两分量**收敛**，因为区间平均管道会丢失朝向记忆 |
+| 平均方式 | 不同初始角 `q0` 的轨迹系综平均 | 单条长轨迹时间平均（论文另对 11 根 SWCNT 平均） |
+| 目的 | 提取自由椭球的本征各向异性扩散系数 `D_a`、`D_b` | 表征爬行（管道）动力学：受限、disengagement、交叉、各向同性化 |
+
+对本代码库的含义：
+- 小 lag 时 `Θ_τ ≈ θ(t)`，Fakhri 方法近似退化为瞬时帧旋转，恢复短时各向异性——与 Han 一致。
+- 在长 lag 两者有可测差异：逐帧 co-moving frame（Han 式）**不会**让 `⟨Δs²⟩` 与 `⟨Δn²⟩`
+  长时间收敛；而区间平均管道（Fakhri 式）会——与作者实验观察到的“长时间平行/垂直 MSD 趋于接近”一致。
+- Han 2006 的体坐标系变体**有意未实现**，仅作背景说明。见参考文献 5（Han 2006）与 6（Fakhri 2010，含 SOM 附录）。
 
 ### 关键参数（来自 `main.m`，V3）
 
