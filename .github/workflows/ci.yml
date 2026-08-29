@@ -2,7 +2,23 @@ name: CI
 
 on:
   push:
+    branches: [main]
+    # Pure documentation changes don't need lint/tests/docker-e2e.
+    paths-ignore:
+      - "README.md"
+      - "docs/**"
+      - "*.md"
   pull_request:
+    paths-ignore:
+      - "README.md"
+      - "docs/**"
+      - "*.md"
+
+# Cancel superseded runs on the same branch/PR so queued and in-flight jobs
+# don't waste GitHub Actions minutes.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   lint-test:
